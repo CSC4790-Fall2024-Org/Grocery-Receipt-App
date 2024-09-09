@@ -1,6 +1,6 @@
-### Grocery-Receipt-App
+## Grocery-Receipt-App
 
-## Commands
+### Commands
 * npm i - Installs all the dependencies listed in package.json
 * npm install <package>@<version> - Installs a specific version of a package
 * npm uninstall <package> - Removes a specific package from your project.
@@ -10,7 +10,7 @@
 * npm list - Lists installed packages and their dependencies 
 * npm audit - Scans for vulnerabilities
 
-## How to Run the Project - Dev Instructions
+### How to Run the Project - Dev Instructions
 * Make sure you are in the correct branch that you want to pull code from 
 * Pull the code 
 * Open the Folder Grocery-Receipt-App in your Visual Studio Code
