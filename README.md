@@ -1,1 +1,3 @@
-# Grocery-Receipt-App
+### Grocery-Receipt-App
+## Commands
+# npm i 
