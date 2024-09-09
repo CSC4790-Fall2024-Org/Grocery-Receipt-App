@@ -1,6 +1,6 @@
 ## Grocery-Receipt-App
 
-### Commands
+### Common Commands
 * npm i - Installs all the dependencies listed in package.json
 * npm install <package>@<version> - Installs a specific version of a package
 * npm uninstall <package> - Removes a specific package from your project.
