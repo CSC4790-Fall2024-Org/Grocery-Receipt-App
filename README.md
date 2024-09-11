@@ -34,6 +34,6 @@ results page of the receipt with buttons to select who bought what
 * Open the Folder Grocery-Receipt-App in your Visual Studio Code
 * In the Helper Bar At the Top of VSC --> Click Terminal --> New Terminal
 * cd Divvy
+* If you have not done it before, in the terminal, run npm i (Cd'd into Divvy)
 * To run the app in mobile/web, input into the terminal (Cd'd into Divvy) --> npx expo start
-* In the terminal, run npm i
 * Scan the QR code in the Expo app on Mobile
