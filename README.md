@@ -11,7 +11,7 @@ results page of the receipt with buttons to select who bought what
 * Version 1f: Same upload page, now make it so you can dynamically change the number of users (no DB connection)
 * Version 1g: Make the look of the app more refined? Or could put this step off and move onto other complex features (depends on time)
 
-####  **Version 2a-2e - If more time allows, add thse features** - 
+####  **Version 2a-2e - If more time allows, add these features** - 
 * Version 2a: Create a feature that sends a text to x amount of users with the given amount they owe on the app (still no db connection)
 * Version 2b: Make it so that it sends not just the $ amount, but also the list of items they bought (Optional: Maybe also the receipt?/Date of Purchase)
 * Version 2c: Account for tax on the receipt being split across users
