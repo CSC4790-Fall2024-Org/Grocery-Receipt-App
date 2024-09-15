@@ -37,3 +37,22 @@ results page of the receipt with buttons to select who bought what
 * If you have not done it before, in the terminal, run npm i (Cd'd into Divvy)
 * To run the app in mobile/web, input into the terminal (Cd'd into Divvy) --> npx expo start
 * Scan the QR code in the Expo app on Mobile
+
+*npm install @types/aws-lambda
+
+(node:34340) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Starting Metro Bundler
+√ It looks like you're trying to use TypeScript but don't have the required dependencies installed. Would you like to install typescript@~5.3.3,@types/react@~18.2.79? ... yes
+
+› Installing 2 other packages using npm
+› Using ~5.3.3 instead of ~5.3.3 for typescript and ~18.2.79 instead of ~18.2.79 for @types/react because these versions was explicitly provided. Packages excluded from dependency validation should be listed in expo.install.exclude in package.json. Learn more: https://docs.expo.dev/more/expo-cli/#configuring-dependency-validation
+> npm install
+npm install @aws-amplify/react-native
+npm install @react-native-async-storage/async-storage@1.23.1
+npm install react-native-image-picker
+npm install @types/aws-sdk
+npm install @types/aws-lambda
+npm install typescript --save-dev
+npx tsc --init
+npm install aws-amplify
