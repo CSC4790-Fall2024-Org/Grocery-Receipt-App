@@ -14,7 +14,7 @@
     "@types/aws-lambda": "^8.10.145",
     "@types/aws-sdk": "^0.0.42",
     "@types/react": "~18.2.79",
-    "aws-amplify": "^6.6.0",
+    "aws-amplify": "^6.6.2",
     "aws-sdk": "^2.1691.0",
     "expo": "~51.0.28",
     "expo-image-picker": "~15.0.7",
