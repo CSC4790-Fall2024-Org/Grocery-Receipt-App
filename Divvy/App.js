@@ -4,8 +4,9 @@ import * as ImagePicker from 'expo-image-picker';
 import AWS from 'aws-sdk';
 import awsConfig from './awsConfig';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_API_KEY } from '@env';
 
-const genAI = new GoogleGenerativeAI('AIzaSyDVrojAo0WxdERxoVa8iZd8_YjBYUp--Ws');
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 AWS.config.update(awsConfig);
 
 export default function App() {
