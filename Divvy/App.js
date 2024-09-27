@@ -163,25 +163,34 @@ export default function App() {
     }
   };
 
-return (
-  <ScrollView contentContainerStyle={styles.container}>
-    <Button title="Pick an image from camera roll" onPress={pickImage} />
-    {image && <Image source={{ uri: image }} style={styles.image} />}
-    <Button title="Upload to S3 and Analyze" onPress={uploadToS3AndAnalyze} />
-    {extractedText !== '' && (
-      <View style={styles.textContainer}>
-        <Text style={styles.textHeader}>Extracted Text:</Text>
-        <Text>{extractedText}</Text>
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {image && <Image source={{ uri: image }} style={styles.image} />}
+        <TouchableOpacity style={styles.uploadButton} onPress={uploadToS3AndAnalyze}>
+          <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
+        </TouchableOpacity>
+        {extractedText !== '' && (
+          <View style={styles.textContainer}>
+            <Text style={styles.textHeader}>Extracted Text:</Text>
+            <Text>{extractedText}</Text>
+          </View>
+        )}
+        {RawGeminiResult !== '' && (
+          <View style={styles.textContainer}>
+            <Text style={styles.textHeader}>Raw Gemini Result:</Text>
+            <Text>{RawGeminiResult}</Text>
+          </View>
+        )}
+      </ScrollView>
+      <View style={styles.navbar}>
+        <TouchableOpacity style={styles.navbarItem} onPress={pickImage}>
+          <Ionicons name="camera" size={32} color="black" />
+        </TouchableOpacity>
       </View>
-    )}
-    {RawGeminiResult !== '' && (
-      <View style={styles.textContainer}>
-        <Text style={styles.textHeader}>Raw Gemini Result:</Text>
-        <Text>{RawGeminiResult}</Text>
-      </View>
-    )}
-  </ScrollView>
-);
+    </View>
+  );
+  
 }
 
 
@@ -204,6 +213,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     width: '100%',
   },
+  navbarItem: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20, // Add some margin from the bottom of the screen
+    padding: 15, // Add some padding to make it easier to tap
+    backgroundColor: '#f8f8f8', // Optional: add a background color
+    borderRadius: 30, // Optional: round the corners
+    // Optional: add a shadow for iOS
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    // Optional: add elevation for Android shadow
+    elevation: 5,
+  },  
   textHeader: {
     fontWeight: 'bold',
     marginBottom: 5,
