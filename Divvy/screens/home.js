@@ -21,24 +21,31 @@ export default function App() {
 
     useEffect(() => {
         (async () => {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Sorry, we need camera roll permissions to make this work!');
-        }
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Sorry, we need camera roll permissions to make this work!');
+            }
         })();
     }, []);
 
+    // Navigate to the Details page when RawGeminiResult is updated
+    useEffect(() => {
+        if (RawGeminiResult) {
+            navigation.navigate('Details', { rawGeminiResult: RawGeminiResult });
+        }
+    }, [RawGeminiResult]);
+
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [3, 4],
-        quality: 1,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [3, 4],
+            quality: 1,
         });
 
         if (!result.canceled) {
-        setImage(result.assets[0].uri);
-        setExtractedText(''); // Clear previous extracted text
+            setImage(result.assets[0].uri);
+            setExtractedText(''); // Clear previous extracted text
         }
     };
 
@@ -48,28 +55,28 @@ export default function App() {
         const imageKey = `image-${Date.now()}`;
 
         const params = {
-        TableName: 'textractDynamoDBTable',
-        Item: {
-            imageKey: imageKey,
-            extractedText: data.extractedText,
-            tables: data.tables,
-            timestamp: timestamp,
-        },
+            TableName: 'textractDynamoDBTable',
+            Item: {
+                imageKey: imageKey,
+                extractedText: data.extractedText,
+                tables: data.tables,
+                timestamp: timestamp,
+            },
         };
 
         try {
-        await dynamodb.put(params).promise();
-        console.log('Data saved to DynamoDB successfully');
+            await dynamodb.put(params).promise();
+            console.log('Data saved to DynamoDB successfully');
         } catch (error) {
-        console.error('Error saving to DynamoDB:', error);
-        throw error;
+            console.error('Error saving to DynamoDB:', error);
+            throw error;
         }
     };
 
     const uploadToS3AndAnalyze = async () => {
         if (!image) {
-        Alert.alert('Please select an image first');
-        return;
+            Alert.alert('Please select an image first');
+            return;
         }
 
         const s3 = new AWS.S3();
@@ -79,145 +86,125 @@ export default function App() {
 
         const key = `upload-${Date.now()}.jpg`;
         const params = {
-        Bucket: awsConfig.bucket,
-        Key: key,
-        Body: blob,
-        ContentType: 'image/jpeg',
+            Bucket: awsConfig.bucket,
+            Key: key,
+            Body: blob,
+            ContentType: 'image/jpeg',
         };
 
         try {
-        // Upload to S3
-        const uploadResult = await s3.upload(params).promise();
-        console.log('Image uploaded successfully. URL:', uploadResult.Location);
+            // Upload to S3
+            const uploadResult = await s3.upload(params).promise();
+            console.log('Image uploaded successfully. URL:', uploadResult.Location);
 
-        // Call Lambda function
-        const lambdaParams = {
-            FunctionName: 'TextractImageProcessor',
-            Payload: JSON.stringify({
-            bucket: awsConfig.bucket,
-            key: key
-            }),
-        };
-        const lambdaResult = await lambda.invoke(lambdaParams).promise();
+            // Call Lambda function
+            const lambdaParams = {
+                FunctionName: 'TextractImageProcessor',
+                Payload: JSON.stringify({
+                    bucket: awsConfig.bucket,
+                    key: key
+                }),
+            };
+            const lambdaResult = await lambda.invoke(lambdaParams).promise();
 
-        console.log('Lambda raw result:', lambdaResult);
+            console.log('Lambda raw result:', lambdaResult);
 
-        let textractResult;
-        try {
-            textractResult = JSON.parse(lambdaResult.Payload);
-        } catch (parseError) {
-            console.error('Error parsing Lambda result:', parseError);
-            throw new Error('Invalid response from Lambda function');
-        }
-
-        console.log('Textract result:', JSON.stringify(textractResult, null, 2));
-
-        if (textractResult.statusCode === 200) {
-            let resultBody;
+            let textractResult;
             try {
-            resultBody = JSON.parse(textractResult.body);
-            console.log('Parsed resultBody:', JSON.stringify(resultBody, null, 2));
+                textractResult = JSON.parse(lambdaResult.Payload);
             } catch (parseError) {
-            console.error('Error parsing Textract result body:', parseError);
-            throw new Error('Invalid Textract result format');
+                console.error('Error parsing Lambda result:', parseError);
+                throw new Error('Invalid response from Lambda function');
             }
 
-            const extractedText = resultBody.extractedText;
-            console.log('Extracted Text:', extractedText);
+            console.log('Textract result:', JSON.stringify(textractResult, null, 2));
 
-            setExtractedText(extractedText);
+            if (textractResult.statusCode === 200) {
+                let resultBody;
+                try {
+                    resultBody = JSON.parse(textractResult.body);
+                    console.log('Parsed resultBody:', JSON.stringify(resultBody, null, 2));
+                } catch (parseError) {
+                    console.error('Error parsing Textract result body:', parseError);
+                    throw new Error('Invalid Textract result format');
+                }
 
-            // Save to DynamoDB
-            await saveToDatabase({ extractedText: extractedText });
+                const extractedText = resultBody.extractedText;
+                console.log('Extracted Text:', extractedText);
 
-            // Parse receipt data using ChatGPT
-            const rawResult = await parseReceiptWithGemini(extractedText);
+                setExtractedText(extractedText);
 
-            // Set the raw result in state
-            setRawGeminiResult(rawResult);
+                // Save to DynamoDB
+                await saveToDatabase({ extractedText: extractedText });
 
-            Alert.alert('Success', 'Receipt processed and saved successfully');
-        } else {
-            console.error('Textract error:', textractResult);
-            const errorMessage = textractResult.body ? JSON.parse(textractResult.body).message : 'Unknown error';
-            throw new Error(errorMessage || 'Failed to extract text');
-        }
+                // Parse receipt data using ChatGPT
+                const rawResult = await parseReceiptWithGemini(extractedText);
+
+                // Set the raw result in state
+                setRawGeminiResult(rawResult);
+
+                Alert.alert('Success', 'Receipt processed and saved successfully');
+            } else {
+                console.error('Textract error:', textractResult);
+                const errorMessage = textractResult.body ? JSON.parse(textractResult.body).message : 'Unknown error';
+                throw new Error(errorMessage || 'Failed to extract text');
+            }
         } catch (error) {
-        console.error('Error in uploadToS3AndAnalyze:', error);
-        Alert.alert('Error', `Failed to process image: ${error.message}`);
+            console.error('Error in uploadToS3AndAnalyze:', error);
+            Alert.alert('Error', `Failed to process image: ${error.message}`);
         }
     };
 
     const parseReceiptWithGemini = async (extractedText) => {
         try {
-        // For text-only input, use the gemini-pro model
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const prompt = `Parse the following receipt text and return a JSON object with storeName, items (array of objects with itemName, price, and discountAmount), tax, and totalCost:\n\n${extractedText}`;
+            const prompt = `Parse the following receipt text and return a JSON object with storeName, items (array of objects with itemName, price, and discountAmount), tax, and totalCost:\n\n${extractedText}`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const rawResult = response.text();
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const rawResult = response.text();
 
-        console.log('Raw Gemini Result:', rawResult);
-        
-        return rawResult;
+            console.log('Raw Gemini Result:', rawResult);
+            
+            return rawResult;
         } catch (error) {
-        console.error('Error parsing receipt with Gemini:', error);
-        throw error;
+            console.error('Error parsing receipt with Gemini:', error);
+            throw error;
         }
     };
 
     const handleUploadAndNavigate = async () => {
         await uploadToS3AndAnalyze(); // This should populate RawGeminiResult
-        navigation.navigate('Details', { rawGeminiResult: RawGeminiResult });
-        // Ensure rawGeminiResult is valid before navigating
-        // if (RawGeminiResult && RawGeminiResult !== '') {
-        //   navigation.navigate('Details', { rawGeminiResult: RawGeminiResult });
-        // } else {
-        //   console.log('No rawGeminiResult available to pass to Details');
-        // }
-      };
-      
+    };
     
-      return (
+    return (
         <View style={styles.container}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            {image && <Image source={{ uri: image }} style={styles.image} />}
-            
-            {/* Upload and Analyze button */}
-            <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
-              <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
-            </TouchableOpacity>
-            
-            {/* Display extracted text if available */}
-            {extractedText !== '' && (
-              <View style={styles.textContainer}>
-                <Text style={styles.textHeader}>Extracted Text:</Text>
-                <Text>{extractedText}</Text>
-              </View>
-            )}
-            
-            {/* Display Raw Gemini Result if available */}
-            {RawGeminiResult !== '' && (
-              <View style={styles.textContainer}>
-                <Text style={styles.textHeader}>Raw Gemini Result:</Text>
-                <Text>{RawGeminiResult}</Text>
-              </View>
-            )}
-          </ScrollView>
-          
-         
-          <View style={styles.navbar}>
-            <TouchableOpacity style={styles.navbarItem} onPress={pickImage}>
-              <Ionicons name="camera" size={32} color="black" />
-            </TouchableOpacity>
-          </View>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {image && <Image source={{ uri: image }} style={styles.image} />}
+                
+                {/* Upload and Analyze button */}
+                <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
+                    <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
+                </TouchableOpacity>
+                
+                {/* Display extracted text if available */}
+                {extractedText !== '' && (
+                    <View style={styles.textContainer}>
+                        <Text style={styles.textHeader}>Extracted Text:</Text>
+                        <Text>{extractedText}</Text>
+                    </View>
+                )}
+            </ScrollView>
+
+            <View style={styles.navbar}>
+                <TouchableOpacity style={styles.navbarItem} onPress={pickImage}>
+                    <Ionicons name="camera" size={32} color="black" />
+                </TouchableOpacity>
+            </View>
         </View>
-      );
-
+    );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -241,16 +228,14 @@ const styles = StyleSheet.create({
   navbarItem: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20, // Add some margin from the bottom of the screen
-    padding: 15, // Add some padding to make it easier to tap
-    backgroundColor: '#f8f8f8', // Optional: add a background color
-    borderRadius: 30, // Optional: round the corners
-    // Optional: add a shadow for iOS
+    marginBottom: 20,
+    padding: 15,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    // Optional: add elevation for Android shadow
     elevation: 5,
   },  
   textHeader: {
