@@ -1,59 +1,183 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, Alert, TextInput, Modal } from 'react-native';
+import BouncyCheckbox from 'react-native-bouncy-checkbox';
 
 export default function DetailsScreen({ route, navigation }) {
-  const { rawGeminiResult } = route.params || {};  // Default to empty object if no params
+  const { rawGeminiResult } = route.params || {}; // Default to empty object if no params
+  const [contributors, setContributors] = useState([]); // List of contributors
+  const [newContributor, setNewContributor] = useState(''); // New contributor input
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null); // Index of currently selected item
+  const [data, setData] = useState([]); // State for item data
+  const [contributorTotals, setContributorTotals] = useState({}); // Totals for each contributor
 
   useEffect(() => {
     console.log('Raw Gemini Result:', rawGeminiResult);
-  }, []);
 
-  // Step 1: Parse rawGeminiResult and remove the ```json block
-  const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
+    // Step 1: Parse rawGeminiResult and remove the ```json block
+    const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
 
-  // Step 2: Prepare arrays for item names, prices, and discounts
-  const itemNamesList = [];
-  const prices = [];
-  const discounts = [];
+    // Step 2: Prepare arrays for item names, prices, and discounts
+    const itemNamesList = [];
+    const prices = [];
+    const discounts = [];
 
-  // Regular expression to extract item details
-  const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
-  let match;
+    // Regular expression to extract item details
+    const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
+    let match;
 
-  // Step 3: Extract values using the regex
-  while ((match = itemRegex.exec(inputString)) !== null) {
-    itemNamesList.push(match[1]);       // Item name
-    prices.push(parseFloat(match[2]));  // Price
-    discounts.push(parseFloat(match[3])); // Discount
-  }
+    // Step 3: Extract values using the regex
+    while ((match = itemRegex.exec(inputString)) !== null) {
+      itemNamesList.push(match[1]);       // Item name
+      prices.push(parseFloat(match[2]));  // Price
+      discounts.push(parseFloat(match[3])); // Discount
+    }
 
-  // Combine item names, prices, and discounts into a single array of objects
-  const data = itemNamesList.map((item, index) => ({
-    itemName: item,
-    price: prices[index],
-    discount: discounts[index],
-  }));
+    // Combine item names, prices, discounts, and selected contributors into a single array of objects
+    const initialData = itemNamesList.map((item, index) => ({
+      itemName: item,
+      price: prices[index],
+      discount: discounts[index],
+      selectedContributors: [], // Initialize selected contributors for each item
+    }));
 
-  // Handle row click
-  const handleRowPress = (item) => {
-    // Here you can navigate to another screen, show more details, etc.
-    Alert.alert('Item Selected', `You selected: ${item.itemName}`);
+    // Set the initial data to state
+    setData(initialData);
+  }, [rawGeminiResult]); // Runs when rawGeminiResult changes
+
+  // Function to add a contributor
+  const addContributor = () => {
+    if (newContributor.trim()) {
+      setContributors([...contributors, newContributor]);
+      setContributorTotals((prev) => ({ ...prev, [newContributor]: 0 })); // Initialize total for new contributor
+      setNewContributor('');
+    }
   };
 
-  // Step 4: Render the list using FlatList with full-width rows
+  // Handle row click
+  const handleRowPress = (index) => {
+    setSelectedItemIndex(index);
+    setModalVisible(true);
+  };
+
+  // Handle contributor selection
+  const handleContributorSelect = (contributor) => {
+    setData((prevData) => {
+      const newData = [...prevData];
+      const selectedContributors = newData[selectedItemIndex]?.selectedContributors || [];
+      const originalPrice = newData[selectedItemIndex].price;
+      const discount = newData[selectedItemIndex].discount;
+      const adjustedPrice = originalPrice - discount; // Apply discount
+
+      // Update selected contributors
+      if (selectedContributors.includes(contributor)) {
+        // Contributor is being unselected
+        newData[selectedItemIndex].selectedContributors = selectedContributors.filter((c) => c !== contributor);
+      } else {
+        // Contributor is being selected
+        newData[selectedItemIndex].selectedContributors = [...selectedContributors, contributor];
+      }
+
+      // Calculate the contribution for the selected contributors
+      const currentContributors = newData[selectedItemIndex].selectedContributors;
+      const totalContribution = currentContributors.length > 0 ? adjustedPrice / currentContributors.length : 0;
+
+      // Reset contributor totals
+      const newTotals = { ...contributorTotals };
+      
+      // Reset totals for all contributors
+      for (let c of contributors) {
+        newTotals[c] = 0; // Start from zero for each contributor
+      }
+
+      // Calculate contributions for each selected contributor
+      currentContributors.forEach((contributor) => {
+        newTotals[contributor] += totalContribution;
+      });
+
+      setContributorTotals(newTotals); // Update contributor totals
+
+      return newData;
+    });
+  };
+
+  // Handle save action
+  const handleSave = () => {
+    setModalVisible(false); // Close the modal
+    setSelectedItemIndex(null); // Reset the selected item index
+  };
+
   return (
     <View style={styles.container}>
+      {/* Add contributor button and input */}
+      <View style={styles.addContributorContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter contributor's name"
+          value={newContributor}
+          onChangeText={setNewContributor}
+        />
+        <Button title="Add Contributor" onPress={addContributor} />
+      </View>
+
+      {/* List of items */}
       <FlatList
         data={data}
         keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.row} onPress={() => handleRowPress(item)}>
+        renderItem={({ item, index }) => (
+          <TouchableOpacity style={styles.row} onPress={() => handleRowPress(index)}>
             <Text style={styles.itemText}>Item: {item.itemName}</Text>
             <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
             <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
+            <Text style={styles.adjustedPriceText}>Adjusted Price: ${(item.price - item.discount).toFixed(2)}</Text>
+            {/* Display selected contributors */}
+            {item.selectedContributors.length > 0 && (
+              <Text style={styles.contributorsText}>
+                Contributors: {item.selectedContributors.join(', ')}
+              </Text>
+            )}
           </TouchableOpacity>
         )}
+        contentContainerStyle={{ paddingBottom: 20 }}
       />
+
+      {/* Modal for selecting contributors */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text>Select contributors for {data[selectedItemIndex]?.itemName}</Text>
+            <FlatList
+              data={contributors}
+              keyExtractor={(contributor) => contributor}
+              renderItem={({ item: contributor }) => (
+                <View style={styles.checkboxContainer}>
+                  <BouncyCheckbox
+                    isChecked={data[selectedItemIndex]?.selectedContributors.includes(contributor)}
+                    onPress={() => handleContributorSelect(contributor)}
+                    text={contributor}
+                  />
+                </View>
+              )}
+            />
+            <Button title="Save" onPress={handleSave} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Display contributor totals */}
+      <View style={styles.totalsContainer}>
+        <Text style={styles.totalsHeader}>Contributor Totals:</Text>
+        {contributors.map((contributor) => (
+          <Text key={contributor} style={styles.totalText}>
+            {contributor}: ${contributorTotals[contributor] ? contributorTotals[contributor].toFixed(2) : 0}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
@@ -62,6 +186,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10, // Padding around the list
+  },
+  addContributorContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    alignItems: 'center', // Align input and button vertically
+  },
+  input: {
+    flex: 1,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    marginRight: 10,
+    paddingLeft: 8,
+    height: 40, // Adjust height to match button
   },
   row: {
     backgroundColor: 'lightblue',
@@ -84,5 +222,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
     marginTop: 5,
+  },
+  adjustedPriceText: {
+    fontSize: 16,
+    color: 'yellow', // Change color to differentiate adjusted price
+    marginTop: 5,
+  },
+  contributorsText: {
+    fontSize: 14,
+    color: 'white',
+    marginTop: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
+  totalsContainer: {
+    marginTop: 20,
+  },
+  totalsHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  totalText: {
+    fontSize: 16,
   },
 });
