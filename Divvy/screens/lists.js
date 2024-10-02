@@ -60,46 +60,52 @@ export default function DetailsScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  // Handle contributor selection
   const handleContributorSelect = (contributor) => {
     setData((prevData) => {
       const newData = [...prevData];
-      const selectedContributors = newData[selectedItemIndex]?.selectedContributors || [];
-      const originalPrice = newData[selectedItemIndex].price;
-      const discount = newData[selectedItemIndex].discount;
-      const adjustedPrice = originalPrice - discount; // Apply discount
-
+      const item = newData[selectedItemIndex];
+      const previousContributors = [...(item.selectedContributors || [])];
+      const adjustedPrice = item.price - item.discount;
+  
       // Update selected contributors
-      if (selectedContributors.includes(contributor)) {
-        // Contributor is being unselected
-        newData[selectedItemIndex].selectedContributors = selectedContributors.filter((c) => c !== contributor);
+      if (item.selectedContributors.includes(contributor)) {
+        item.selectedContributors = item.selectedContributors.filter(c => c !== contributor);
       } else {
-        // Contributor is being selected
-        newData[selectedItemIndex].selectedContributors = [...selectedContributors, contributor];
+        item.selectedContributors = [...item.selectedContributors, contributor];
       }
-
-      // Calculate the contribution for the selected contributors
-      const currentContributors = newData[selectedItemIndex].selectedContributors;
-      const totalContribution = currentContributors.length > 0 ? adjustedPrice / currentContributors.length : 0;
-
-      // Reset contributor totals
-      const newTotals = { ...contributorTotals };
-      
-      // Reset totals for all contributors
-      for (let c of contributors) {
-        newTotals[c] = 0; // Start from zero for each contributor
-      }
-
-      // Calculate contributions for each selected contributor
-      currentContributors.forEach((contributor) => {
-        newTotals[contributor] += totalContribution;
+  
+      // Update contributor totals
+      setContributorTotals(prevTotals => {
+        const newTotals = { ...prevTotals };
+  
+        // Remove previous contributions
+        previousContributors.forEach(c => {
+          if (previousContributors.length > 0) {
+            newTotals[c] -= adjustedPrice / previousContributors.length;
+          }
+        });
+  
+        // Add new contributions
+        if (item.selectedContributors.length > 0) {
+          const contributionPerPerson = adjustedPrice / item.selectedContributors.length;
+          item.selectedContributors.forEach(c => {
+            newTotals[c] = (newTotals[c] || 0) + contributionPerPerson;
+          });
+        }
+  
+        // Ensure no negative values
+        Object.keys(newTotals).forEach(key => {
+          newTotals[key] = Math.max(0, Number(newTotals[key].toFixed(2)));
+        });
+  
+        return newTotals;
       });
-
-      setContributorTotals(newTotals); // Update contributor totals
-
+  
       return newData;
     });
   };
+  
+  
 
   // Handle save action
   const handleSave = () => {
