@@ -12,7 +12,7 @@ export default function DetailsScreen({ route, navigation }) {
   const [contributorTotals, setContributorTotals] = useState({}); // Totals for each contributor
 
   useEffect(() => {
-    console.log('Raw Gemini Result:', rawGeminiResult);
+    //console.log('Raw Gemini Result:', rawGeminiResult);
 
     // Step 1: Parse rawGeminiResult and remove the ```json block
     const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');

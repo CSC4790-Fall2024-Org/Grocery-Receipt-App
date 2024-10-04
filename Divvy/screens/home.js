@@ -159,7 +159,7 @@ export default function App() {
         try {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
             
-            const prompt = `Create a JSON object with itemname, pricename, and discountamount with total and tax at the end. Pay attention to discounts. Try not to make more than one input for each item:\n\n${extractedText}`;
+            const prompt = `Create a JSON object with itemname, pricename, and discountamount with total and tax at the end. Pay attention to discounts. Try not to make more than one input for each item. I don't want code, I want you to write it out for me. \n\n${extractedText}`;
 
             const result = await model.generateContent(prompt);
             const response = await result.response;
