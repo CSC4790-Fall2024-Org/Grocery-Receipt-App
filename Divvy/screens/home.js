@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import AWS from 'aws-sdk';
@@ -12,15 +12,18 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 AWS.config.update(awsConfig);
 
 export default function App() {
-
     const navigation = useNavigation();
-
     const [image, setImage] = useState(null);
     const [extractedText, setExtractedText] = useState('');
     const [RawGeminiResult, setRawGeminiResult] = useState('');
+    const [isModalVisible, setModalVisible] = useState(false); // For managing modal visibility
 
     useEffect(() => {
         (async () => {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Sorry, we need camera roll permissions to make this work!');
+            }
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert('Sorry, we need camera roll permissions to make this work!');
@@ -41,13 +44,31 @@ export default function App() {
             allowsEditing: true,
             aspect: [3, 4],
             quality: 1,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [3, 4],
+            quality: 1,
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri);
-            setExtractedText(''); // Clear previous extracted text
+                setImage(result.assets[0].uri);
+                setExtractedText(''); // Clear previous extracted text
         }
     };
+
+    const takePhoto = async () => {
+      let result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [3, 4],
+          quality: 1,
+      });
+  
+      if (!result.canceled) {
+          setImage(result.assets[0].uri); // Set the taken image
+          setExtractedText(''); // Clear previous extracted text
+      }
+  };
 
     const saveToDatabase = async (data) => {
         const dynamodb = new AWS.DynamoDB.DocumentClient();
@@ -62,12 +83,23 @@ export default function App() {
                 tables: data.tables,
                 timestamp: timestamp,
             },
+            TableName: 'textractDynamoDBTable',
+            Item: {
+                imageKey: imageKey,
+                extractedText: data.extractedText,
+                tables: data.tables,
+                timestamp: timestamp,
+            },
         };
 
         try {
             await dynamodb.put(params).promise();
             console.log('Data saved to DynamoDB successfully');
+            await dynamodb.put(params).promise();
+            console.log('Data saved to DynamoDB successfully');
         } catch (error) {
+            console.error('Error saving to DynamoDB:', error);
+            throw error;
             console.error('Error saving to DynamoDB:', error);
             throw error;
         }
@@ -75,6 +107,8 @@ export default function App() {
 
     const uploadToS3AndAnalyze = async () => {
         if (!image) {
+            Alert.alert('Please select an image first');
+            return;
             Alert.alert('Please select an image first');
             return;
         }
@@ -86,6 +120,10 @@ export default function App() {
 
         const key = `upload-${Date.now()}.jpg`;
         const params = {
+            Bucket: awsConfig.bucket,
+            Key: key,
+            Body: blob,
+            ContentType: 'image/jpeg',
             Bucket: awsConfig.bucket,
             Key: key,
             Body: blob,
@@ -179,6 +217,26 @@ export default function App() {
     };
     
     return (
+        await uploadToS3AndAnalyze();
+        navigation.navigate('Details', { rawGeminiResult: RawGeminiResult });
+    };
+
+    // Modal toggling functions
+    const toggleModal = () => {
+        setModalVisible(!isModalVisible);
+    };
+
+    const handleOption1 = async () => {
+      await takePhoto(); // Launch the camera
+      toggleModal(); // Close the modal after taking the photo
+  };
+
+    const handleOption2 = async () => {
+      await pickImage(); // Use the pickImage function to open the camera roll
+      toggleModal(); // Close the modal after the image is picked
+  };
+
+    return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {image && <Image source={{ uri: image }} style={styles.image} />}
@@ -202,7 +260,54 @@ export default function App() {
                     <Ionicons name="camera" size={32} color="black" />
                 </TouchableOpacity>
             </View>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {image && <Image source={{ uri: image }} style={styles.image} />}
+
+                <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
+                    <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
+                </TouchableOpacity>
+
+                {extractedText !== '' && (
+                    <View style={styles.textContainer}>
+                        <Text style={styles.textHeader}>Extracted Text:</Text>
+                        <Text>{extractedText}</Text>
+                    </View>
+                )}
+
+                {RawGeminiResult !== '' && (
+                    <View style={styles.textContainer}>
+                        <Text style={styles.textHeader}>Raw Gemini Result:</Text>
+                        <Text>{RawGeminiResult}</Text>
+                    </View>
+                )}
+            </ScrollView>
+
+            <View style={styles.navbar}>
+                <TouchableOpacity style={styles.navbarItem} onPress={toggleModal}>
+                    <Ionicons name="camera" size={32} color="black" />
+                </TouchableOpacity>
+            </View>
+
+            {/* Modal for popup menu */}
+            <Modal
+               visible={isModalVisible}
+               transparent={true}
+               animationType="none" // Remove animation for better positioning control
+               onRequestClose={toggleModal}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContainer}>
+                  <TouchableOpacity onPress={handleOption1} style={styles.modalOption}>
+                    <Text>Take a photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleOption2} style={styles.modalOption}>
+                    <Text>Upload from camera roll</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </Modal>
         </View>
+    );
     );
 }
 
@@ -228,14 +333,16 @@ const styles = StyleSheet.create({
   navbarItem: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 30,
+    marginBottom: 20, // Add some margin from the bottom of the screen
+    padding: 15, // Add some padding to make it easier to tap
+    backgroundColor: '#f8f8f8', // Optional: add a background color
+    borderRadius: 30, // Optional: round the corners
+    // Optional: add a shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    // Optional: add elevation for Android shadow
     elevation: 5,
   },  
   textHeader: {
