@@ -12,6 +12,7 @@
     "@aws-amplify/react-native": "^1.1.5",
     "@google/generative-ai": "^0.19.0",
     "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-native/dev-middleware": "^0.75.4",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
     "@types/aws-lambda": "^8.10.145",

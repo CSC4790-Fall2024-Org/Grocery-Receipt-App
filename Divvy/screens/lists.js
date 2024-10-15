@@ -132,7 +132,7 @@ export default function DetailsScreen({ route, navigation }) {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }) => (
           <TouchableOpacity style={styles.row} onPress={() => handleRowPress(index)}>
-            <Text style={styles.itemText}>Item: {item.itemName}</Text>
+            <Text style={styles.itemText}>{item.itemName}</Text>
             <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
             <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
             <Text style={styles.adjustedPriceText}>Adjusted Price: ${(item.price - item.discount).toFixed(2)}</Text>
@@ -191,63 +191,66 @@ export default function DetailsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10, // Padding around the list
+    padding: 10,
   },
   addContributorContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    alignItems: 'center', // Align input and button vertically
+    alignItems: 'center',
   },
   input: {
     flex: 1,
-    borderColor: 'gray',
+    borderColor: '#000', // Black border
     borderWidth: 1,
     borderRadius: 5,
     marginRight: 10,
     paddingLeft: 8,
-    height: 40, // Adjust height to match button
+    height: 40,
+    color: '#000', // Black text
   },
   row: {
-    backgroundColor: 'lightblue',
-    padding: 15,
-    marginBottom: 10, // Space between rows
-    borderRadius: 5,
+    backgroundColor: '#b9c5ed', // Main color
+    padding: 10, // Adjust padding to make box smaller
+    marginBottom: 10,
+    borderRadius: 15, // Rounded edges
     justifyContent: 'center',
+    width: '90%', // Makes box smaller horizontally
+    alignSelf: 'center', // Center box
   },
   itemText: {
     fontSize: 18,
-    color: 'white',
+    color: '#000', // Black text
     fontWeight: 'bold',
   },
   priceText: {
     fontSize: 16,
-    color: 'white',
+    color: '#000', // Black text
     marginTop: 5,
   },
   discountText: {
     fontSize: 16,
-    color: 'white',
+    color: '#000', // Black text
     marginTop: 5,
   },
   adjustedPriceText: {
     fontSize: 16,
-    color: 'yellow', // Change color to differentiate adjusted price
+    color: '#fff', // White text for differentiation
     marginTop: 5,
   },
   contributorsText: {
     fontSize: 14,
-    color: 'white',
+    color: '#000', // Black text
     marginTop: 5,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     width: '80%',
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
   },
@@ -262,8 +265,10 @@ const styles = StyleSheet.create({
   totalsHeader: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000', // Black text
   },
   totalText: {
     fontSize: 16,
+    color: '#000', // Black text
   },
 });
