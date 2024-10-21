@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, Alert, TextInput, Modal } from 'react-native';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function DetailsScreen({ route, navigation }) {
   const { rawGeminiResult } = route.params || {}; // Default to empty object if no params
@@ -115,6 +116,10 @@ export default function DetailsScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.purpleSpace} />
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+        <Ionicons name="arrow-back" size={24} color="black" style={styles.backIcon} />
+      </TouchableOpacity>
       {/* Add contributor button and input */}
       <View style={styles.addContributorContainer}>
         <TextInput
@@ -192,30 +197,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
-  },
-  addContributorContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    borderColor: '#000', // Black border
-    borderWidth: 1,
-    borderRadius: 5,
-    marginRight: 10,
-    paddingLeft: 8,
-    height: 40,
-    color: '#000', // Black text
+    backgroundColor: '#b9c5ed', // Purplish background
   },
   row: {
-    backgroundColor: '#b9c5ed', // Main color
+    backgroundColor: '#fff', // White cards
     padding: 10, // Adjust padding to make box smaller
     marginBottom: 10,
     borderRadius: 15, // Rounded edges
     justifyContent: 'center',
     width: '90%', // Makes box smaller horizontally
     alignSelf: 'center', // Center box
+    shadowColor: '#000', // Add shadow for better card distinction
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5, // For Android shadow
   },
   itemText: {
     fontSize: 18,
@@ -234,7 +230,7 @@ const styles = StyleSheet.create({
   },
   adjustedPriceText: {
     fontSize: 16,
-    color: '#fff', // White text for differentiation
+    color: '#000', // Black text for differentiation
     marginTop: 5,
   },
   contributorsText: {
@@ -248,6 +244,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  addContributorContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  backButton: {
+    backgroundColor: '#fff', // White button background
+    padding: 10,
+    borderRadius: 5,
+    width: '20%',
+    alignItems: 'center',
+    marginBottom: 20,
+   
+  },
+  backIcon: {
+    marginRight: 8, // Space between the icon and the text
+  },
+
+  input: {
+    flex: 1,
+    borderColor: '#000', // Black border
+    borderWidth: 1,
+    borderRadius: 5,
+    marginRight: 10,
+    paddingLeft: 8,
+    height: 40,
+    color: '#000', // Black text
+    backgroundColor: '#fff', // White background for the input field
+  },
   modalContent: {
     width: '80%',
     backgroundColor: '#fff',
@@ -260,7 +285,12 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   totalsContainer: {
-    marginTop: 20,
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#e1e8f3', // New color for the contributor box
+    borderRadius: 10,
+    marginLeft: 10,
+    marginRight: 10
   },
   totalsHeader: {
     fontSize: 18,
@@ -270,5 +300,9 @@ const styles = StyleSheet.create({
   totalText: {
     fontSize: 16,
     color: '#000', // Black text
+  },
+  purpleSpace: {
+    height: 50, // Adjust the height as needed
+    backgroundColor: '#b9c5ed', // Matches the background color for a seamless look
   },
 });
