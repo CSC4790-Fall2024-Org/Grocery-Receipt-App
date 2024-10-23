@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import AWS from 'aws-sdk';
@@ -18,6 +18,8 @@ export default function App() {
     const [image, setImage] = useState(null);
     const [extractedText, setExtractedText] = useState('');
     const [RawGeminiResult, setRawGeminiResult] = useState('');
+    const [isModalVisible, setModalVisible] = useState(false); 
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         (async () => {
@@ -45,6 +47,20 @@ export default function App() {
 
         if (!result.canceled) {
             setImage(result.assets[0].uri);
+            setExtractedText(''); // Clear previous extracted text
+        }
+    };
+
+    const takePhoto = async () => {
+        let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [3, 4],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri); // Set the taken image
             setExtractedText(''); // Clear previous extracted text
         }
     };
@@ -201,33 +217,75 @@ export default function App() {
     };
 
     const handleUploadAndNavigate = async () => {
-        await uploadToS3AndAnalyze(); // This should populate RawGeminiResult
+        setLoading(true); // Show loading spinner
+        try {
+            await uploadToS3AndAnalyze(); // This should populate RawGeminiResult
+        } finally {
+            setLoading(false); // Hide loading spinner when done
+        }
+    };
+
+    const toggleModal = () => {
+        setModalVisible(!isModalVisible);
+    };
+
+    const handleOption1 = async () => {
+        await takePhoto(); // Launch the camera
+        toggleModal(); // Close the modal after taking the photo
+    };
+
+    const handleOption2 = async () => {
+        await pickImage(); // Use the pickImage function to open the camera roll
+        toggleModal(); // Close the modal after the image is picked
     };
     
     return (
         <View style={styles.container}>
+            <Image
+                source={require('../assets/logo.jpeg')}
+                style={styles.backgroundImage}
+            />
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {image && <Image source={{ uri: image }} style={styles.image} />}
                 
                 {/* Upload and Analyze button */}
-                <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
-                    <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
-                </TouchableOpacity>
-                
-                {/* Display extracted text if available */}
-                {extractedText !== '' && (
-                    <View style={styles.textContainer}>
-                        <Text style={styles.textHeader}>Extracted Text:</Text>
-                        <Text>{extractedText}</Text>
-                    </View>
+                {loading ? (
+                    <ActivityIndicator size="large" color="#6483EA" />
+                ) : (
+                    <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
+                        <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
+                    </TouchableOpacity>
                 )}
+                
             </ScrollView>
 
             <View style={styles.navbar}>
-                <TouchableOpacity style={styles.navbarItem} onPress={pickImage}>
-                    <Ionicons name="camera" size={32} color="black" />
+                <TouchableOpacity style={styles.navbarItem} onPress={toggleModal}>
+                    <Image
+                        source={require('../assets/cart_only.png')}
+                        style={{ width: 80, height: 80 }}
+                    />
                 </TouchableOpacity>
             </View>
+
+            {/* Modal for popup menu */}
+            <Modal
+                visible={isModalVisible}
+                transparent={true}
+                animationType="none"
+                onRequestClose={toggleModal}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <TouchableOpacity onPress={handleOption1} style={styles.modalOption}>
+                            <Text>Take a photo</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleOption2} style={styles.modalOption}>
+                            <Text>Upload from camera roll</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -238,34 +296,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#b9c5ed',
+  },
+  scrollContent: {
+    flexGrow: 1,               // Ensures the content grows with the ScrollView
+    justifyContent: 'center',   // Centers content vertically
+    alignItems: 'center',       // Centers content horizontally
+    paddingVertical: 20,        // Optional: Adds some vertical padding for spacing
   },
   image: {
     width: 200,
     height: 200,
-    marginVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
   },
   textContainer: {
-    marginTop: 20,
+    marginTop: 0,
     padding: 10,
     backgroundColor: '#f0f0f0',
     borderRadius: 5,
     width: '100%',
   },
+  uploadButton: {
+    backgroundColor: '#faf9fb',  // Same background as the contributor box (or any color you want)
+    borderRadius: 30,           // Rounded corners
+    marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,       // Padding to give space on left and right
+    paddingVertical: 5,         // Padding for top and bottom
+  },
+  uploadButtonText: {
+    color: 'black',             // Black text color
+    fontWeight: 'bold',         // Bold text
+    fontSize: 16,
+    textAlign: 'center',
+  },
   navbarItem: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 30,
+    marginBottom: 80,
+    padding: 0,
+    backgroundColor: '#faf9fb',
+    borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 0,
   },  
   textHeader: {
     fontWeight: 'bold',
     marginBottom: 5,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    bottom: 120, // Adjust this value depending on the button's height
+    left: 0,
+    right: 0,
+    alignItems: 'center', // Center the modal horizontally relative to the screen
+  },
+  modalContainer: {
+    width: 200,
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalOption: {
+    padding: 10,
+    marginBottom: 5, // Space between the options
+    borderWidth: 2, // Full border around the option
+    borderColor: '#ccc', // Border color
+    borderRadius: 5, // Rounded corners for each option
+    backgroundColor: '#fff', // Optional: Background color inside each option
+    alignItems: 'center', // Center the text inside the button
+  },
+  backgroundImage: {
+    position: 'absolute',       // Make the image absolute so it's independent of other content
+    width: '100%',              // Cover the entire width of the screen
+    height: '50%',             // Cover the entire height of the screen
+    alignItems: 'center',
+    justifyContent: 'center',                  
+    zIndex: -1,                 // Push it behind everything else
+    opacity: 0.75,
   },
 });
