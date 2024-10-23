@@ -115,92 +115,133 @@ export default function DetailsScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.purpleSpace} />
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
-        <Ionicons name="arrow-back" size={24} color="black" style={styles.backIcon} />
-      </TouchableOpacity>
-      {/* Add contributor button and input */}
-      <View style={styles.addContributorContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter contributor's name"
-          value={newContributor}
-          onChangeText={setNewContributor}
-        />
-        <Button title="Add Contributor" onPress={addContributor} />
-      </View>
-
-      {/* List of items */}
-      <FlatList
-        data={data}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity style={styles.row} onPress={() => handleRowPress(index)}>
-            <Text style={styles.itemText}>{item.itemName}</Text>
-            <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
-            <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
-            <Text style={styles.adjustedPriceText}>Adjusted Price: ${(item.price - item.discount).toFixed(2)}</Text>
-            {/* Display selected contributors */}
-            {item.selectedContributors.length > 0 && (
-              <Text style={styles.contributorsText}>
-                Contributors: {item.selectedContributors.join(', ')}
-              </Text>
-            )}
+    <>
+      {/* Overarching container */}
+      <View style={styles.container}>
+        <View style={styles.purpleSpace} />
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+  
+        {/* Add contributor button and input */}
+        <View style={styles.addContributorContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter contributor's name"
+            value={newContributor}
+            onChangeText={setNewContributor}
+          />
+          <TouchableOpacity style={styles.addButton} onPress={addContributor}>
+            <Text style={styles.addButtonText}>Add Contributor</Text>
           </TouchableOpacity>
-        )}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
 
-      {/* Modal for selecting contributors */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text>Select contributors for {data[selectedItemIndex]?.itemName}</Text>
-            <FlatList
-              data={contributors}
-              keyExtractor={(contributor) => contributor}
-              renderItem={({ item: contributor }) => (
-                <View style={styles.checkboxContainer}>
-                  <BouncyCheckbox
-                    isChecked={data[selectedItemIndex]?.selectedContributors.includes(contributor)}
-                    onPress={() => handleContributorSelect(contributor)}
-                    text={contributor}
-                  />
-                </View>
-              )}
-            />
-            <Button title="Save" onPress={handleSave} />
-          </View>
         </View>
-      </Modal>
-
-      {/* Display contributor totals */}
+  
+        {/* List of items */}
+        <FlatList
+          data={data}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity style={styles.row} onPress={() => handleRowPress(index)}>
+              <Text style={styles.itemText}>{item.itemName}</Text>
+              <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
+              <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
+              <Text style={styles.adjustedPriceText}>
+                Adjusted Price: ${(item.price - item.discount).toFixed(2)}
+              </Text>
+              {/* Display selected contributors */}
+              {item.selectedContributors.length > 0 && (
+                <Text style={styles.contributorsText}>
+                  Contributors: {item.selectedContributors.join(', ')}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+  
+        {/* Modal for selecting contributors */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text>Select contributors for {data[selectedItemIndex]?.itemName}</Text>
+              <FlatList
+                data={contributors}
+                keyExtractor={(contributor) => contributor}
+                renderItem={({ item: contributor }) => (
+                  <View style={styles.checkboxContainer}>
+                    <BouncyCheckbox
+                      isChecked={data[selectedItemIndex]?.selectedContributors.includes(contributor)}
+                      onPress={() => handleContributorSelect(contributor)}
+                      text={contributor}
+                    />
+                  </View>
+                )}
+              />
+              <Button title="Save" onPress={handleSave} />
+            </View>
+          </View>
+        </Modal>
+      </View>
+  
+      {/* Separate container for contributors and totals, outside the overarching container */}
       <View style={styles.totalsContainer}>
         <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-        {contributors.map((contributor) => (
-          <Text key={contributor} style={styles.totalText}>
-            {contributor}: ${contributorTotals[contributor] ? contributorTotals[contributor].toFixed(2) : 0}
-          </Text>
-        ))}
+          <FlatList
+            data={contributors}
+            horizontal={true}
+            keyExtractor={(contributor) => contributor}
+            renderItem={({ item }) => (
+              <Text style={styles.totalText}>
+                {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
+              </Text>
+            )}
+            contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+          />
+        <TouchableOpacity>
+          <Text style={styles.summButton}>View Summary</Text>
+        </TouchableOpacity>
+        
       </View>
-    </View>
+
+    </>
   );
+  
 }
 
 const styles = StyleSheet.create({
+  addButton: {
+    backgroundColor: '#D7D7E3',  // Same background as the contributor box (or any color you want)
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,           // Rounded corners
+    alignItems: 'center',       // Center the text
+    marginTop: 0,              // Margin to separate it from other components
+  },
+  
+  addButtonText: {
+    color: 'black',             // Black text color
+    fontWeight: 'bold',         // Bold text
+    fontSize: 16,               // Adjust font size if needed
+  },  
+  summButton:{
+    fontSize: 18,
+    color: '#000', // Black text
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     padding: 10,
+    paddingVertical: 0,
     backgroundColor: '#b9c5ed', // Purplish background
   },
   row: {
-    backgroundColor: '#fff', // White cards
+    backgroundColor: '#D7D7E3', // White cards
     padding: 10, // Adjust padding to make box smaller
     marginBottom: 10,
     borderRadius: 15, // Rounded edges
@@ -248,14 +289,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
     alignItems: 'center',
+    
   },
   backButton: {
-    backgroundColor: '#fff', // White button background
-    padding: 10,
+    //backgroundColor: '#fff', // White button background
+    padding: 5,
     borderRadius: 5,
     width: '20%',
-    alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
    
   },
   backIcon: {
@@ -285,24 +326,31 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   totalsContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#e1e8f3', // New color for the contributor box
-    borderRadius: 10,
-    marginLeft: 10,
-    marginRight: 10
+    paddingVertical: 10,
+    paddingBottom: 20,               // Adjust padding for better spacing
+    width: '100%',               // Ensures it takes up the full width of the screen
+    backgroundColor: '#D7D7E3',
+    alignItems: 'center', 
+
   },
+  
   totalsHeader: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000', // Black text
+    marginBottom: 10, 
+    
   },
   totalText: {
     fontSize: 16,
     color: '#000', // Black text
+    paddingBottom: 5,
+    marginHorizontal: 3,
+    marginBottom: 10, 
   },
   purpleSpace: {
     height: 50, // Adjust the height as needed
     backgroundColor: '#b9c5ed', // Matches the background color for a seamless look
+    
   },
 });
