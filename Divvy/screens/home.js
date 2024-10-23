@@ -158,15 +158,41 @@ export default function App() {
     const parseReceiptWithGemini = async (extractedText) => {
         try {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-            
-            const prompt = `Create a JSON object with itemname, pricename, and discountamount with total and tax at the end. Pay attention to discounts. Try not to make more than one input for each item. I don't want code, I want you to write it out for me. \n\n${extractedText}`;
-
+    
+            const prompt = 
+            `text
+            {
+            "extractedText":"${extractedText}"
+            }
+            text'
+    
+            Generate a JSON object with the following structure:
+    
+            \`\`\`json
+            {
+              "items": [
+                {"itemName": "string", "price": number, "discountAmount": number},
+                {"itemName": "string", "price": number, "discountAmount": number},
+                // ... more items
+              ],
+              "subtotal": number,
+              "tax": number,
+              "total": number
+              "calculatedTotal": number
+            }
+            \`\`\`
+    
+            Use the provided \`extractedText\` to extract item details.  The \`itemName\` should be the product name. The \`price\` should be the item's original price. The \`discountAmount\` should be the discount applied to that item (0 if no discount).  Accurately identify discounts, even if they are on a separate line like "2.90-". Associate discounts with the correct item based on their proximity in the text.  The \`subtotal\`, \`tax\`, and \`total\` should reflect the final calculated amounts from the receipt.
+    
+            Do not include any explanatory text or code; only provide the JSON output.
+            `;
+    
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const rawResult = response.text();
-
+    
             console.log('Raw Gemini Result:', rawResult);
-            
+    
             return rawResult;
         } catch (error) {
             console.error('Error parsing receipt with Gemini:', error);
