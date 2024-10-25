@@ -175,30 +175,24 @@ export default function App() {
         try {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-            const prompt = 
-            `text
-            {
-            "extractedText":"${extractedText}"
-            }
-            text'
-    
-            Generate a JSON object with the following structure:
+            const prompt = `"extractedText":"${extractedText}"
+
+            Using extractedText, generate a JSON object with the following structure:
     
             \`\`\`json
             {
               "items": [
-                {"itemName": "string", "price": number, "discountAmount": number},
-                {"itemName": "string", "price": number, "discountAmount": number},
+                {"itemname": "string", "pricename": number, "discountamount": number},
+                {"itemname": "string", "pricename": number, "discountamount": number},
                 // ... more items
               ],
               "subtotal": number,
               "tax": number,
               "total": number
-              "calculatedTotal": number
             }
             \`\`\`
     
-            Use the provided \`extractedText\` to extract item details.  The \`itemName\` should be the product name. The \`price\` should be the item's original price. The \`discountAmount\` should be the discount applied to that item (0 if no discount).  Accurately identify discounts, even if they are on a separate line like "2.90-". Associate discounts with the correct item based on their proximity in the text.  The \`subtotal\`, \`tax\`, and \`total\` should reflect the final calculated amounts from the receipt.
+            Use the provided \`extractedText\` to extract item details.  The \`itemname\` should be the product name. The \`pricename\` should be the item's original price. The \`discountamount\` should be the discount applied to that item (0 if no discount).  Accurately identify discounts, even if they are on a separate line like "2.90-". Associate discounts with the correct item based on their proximity in the text.  The \`subtotal\`, \`tax\`, and \`total\` should reflect the final calculated amounts from the receipt. There should only be ONE itemname, price, and discountamount per object.
     
             Do not include any explanatory text or code; only provide the JSON output.
             `;
@@ -326,12 +320,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 5,       // Padding to give space on left and right
     paddingVertical: 5,         // Padding for top and bottom
+    height: '10%',
   },
   uploadButtonText: {
     color: 'black',             // Black text color
     fontWeight: 'bold',         // Bold text
     fontSize: 16,
     textAlign: 'center',
+    flex: 1,                       // Takes up full screen height
+    justifyContent: 'flex-start',   // Aligns content at the top
+    alignItems: 'flex-start',       // Aligns content to the left
+    paddingTop: 20,                 // Optional: adds some space at the top
+    paddingHorizontal: 10, 
   },
   navbarItem: {
     justifyContent: 'center',

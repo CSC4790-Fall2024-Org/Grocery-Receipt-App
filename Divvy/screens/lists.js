@@ -5,57 +5,46 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function DetailsScreen({ route, navigation }) {
   const { rawGeminiResult } = route.params || {}; // Default to empty object if no params
-  const [contributors, setContributors] = useState([]); // List of contributors
-  const [newContributor, setNewContributor] = useState(''); // New contributor input
-  const [modalVisible, setModalVisible] = useState(false); // Modal visibility
-  const [selectedItemIndex, setSelectedItemIndex] = useState(null); // Index of currently selected item
-  const [data, setData] = useState([]); // State for item data
-  const [contributorTotals, setContributorTotals] = useState({}); // Totals for each contributor
+  const [contributors, setContributors] = useState([]);
+  const [newContributor, setNewContributor] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  const [data, setData] = useState([]);
+  const [contributorTotals, setContributorTotals] = useState({});
 
   useEffect(() => {
-    //console.log('Raw Gemini Result:', rawGeminiResult);
-
-    // Step 1: Parse rawGeminiResult and remove the ```json block
     const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
-
-    // Step 2: Prepare arrays for item names, prices, and discounts
     const itemNamesList = [];
     const prices = [];
     const discounts = [];
 
-    // Regular expression to extract item details
     const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
     let match;
 
-    // Step 3: Extract values using the regex
     while ((match = itemRegex.exec(inputString)) !== null) {
-      itemNamesList.push(match[1]);       // Item name
-      prices.push(parseFloat(match[2]));  // Price
-      discounts.push(parseFloat(match[3])); // Discount
+      itemNamesList.push(match[1]);
+      prices.push(parseFloat(match[2]));
+      discounts.push(parseFloat(match[3]));
     }
 
-    // Combine item names, prices, discounts, and selected contributors into a single array of objects
     const initialData = itemNamesList.map((item, index) => ({
       itemName: item,
       price: prices[index],
       discount: discounts[index],
-      selectedContributors: [], // Initialize selected contributors for each item
+      selectedContributors: [],
     }));
 
-    // Set the initial data to state
     setData(initialData);
-  }, [rawGeminiResult]); // Runs when rawGeminiResult changes
+  }, [rawGeminiResult]);
 
-  // Function to add a contributor
   const addContributor = () => {
     if (newContributor.trim()) {
       setContributors([...contributors, newContributor]);
-      setContributorTotals((prev) => ({ ...prev, [newContributor]: 0 })); // Initialize total for new contributor
+      setContributorTotals((prev) => ({ ...prev, [newContributor]: 0 }));
       setNewContributor('');
     }
   };
 
-  // Handle row click
   const handleRowPress = (index) => {
     setSelectedItemIndex(index);
     setModalVisible(true);
@@ -65,65 +54,55 @@ export default function DetailsScreen({ route, navigation }) {
     setData((prevData) => {
       const newData = [...prevData];
       const item = newData[selectedItemIndex];
-      const previousContributors = [...(item.selectedContributors || [])];
       const adjustedPrice = item.price - item.discount;
-  
+      const previousContributors = [...(item.selectedContributors || [])];
+
       // Update selected contributors
       if (item.selectedContributors.includes(contributor)) {
         item.selectedContributors = item.selectedContributors.filter(c => c !== contributor);
       } else {
         item.selectedContributors = [...item.selectedContributors, contributor];
       }
-  
+
       // Update contributor totals
-      setContributorTotals(prevTotals => {
+      setContributorTotals((prevTotals) => {
         const newTotals = { ...prevTotals };
-  
-        // Remove previous contributions
+
         previousContributors.forEach(c => {
-          if (previousContributors.length > 0) {
-            newTotals[c] -= adjustedPrice / previousContributors.length;
-          }
+          newTotals[c] -= adjustedPrice / previousContributors.length;
         });
-  
-        // Add new contributions
+
         if (item.selectedContributors.length > 0) {
           const contributionPerPerson = adjustedPrice / item.selectedContributors.length;
           item.selectedContributors.forEach(c => {
             newTotals[c] = (newTotals[c] || 0) + contributionPerPerson;
           });
         }
-  
-        // Ensure no negative values
+
         Object.keys(newTotals).forEach(key => {
           newTotals[key] = Math.max(0, Number(newTotals[key].toFixed(2)));
         });
-  
+
         return newTotals;
       });
-  
+
       return newData;
     });
   };
-  
-  
 
-  // Handle save action
   const handleSave = () => {
-    setModalVisible(false); // Close the modal
-    setSelectedItemIndex(null); // Reset the selected item index
+    setModalVisible(false);
+    setSelectedItemIndex(null);
   };
 
   return (
     <>
-      {/* Overarching container */}
       <View style={styles.container}>
         <View style={styles.purpleSpace} />
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-  
-        {/* Add contributor button and input */}
+
         <View style={styles.addContributorContainer}>
           <TextInput
             style={styles.input}
@@ -134,10 +113,8 @@ export default function DetailsScreen({ route, navigation }) {
           <TouchableOpacity style={styles.addButton} onPress={addContributor}>
             <Text style={styles.addButtonText}>Add Contributor</Text>
           </TouchableOpacity>
-
         </View>
-  
-        {/* List of items */}
+
         <FlatList
           data={data}
           keyExtractor={(item, index) => index.toString()}
@@ -149,7 +126,6 @@ export default function DetailsScreen({ route, navigation }) {
               <Text style={styles.adjustedPriceText}>
                 Adjusted Price: ${(item.price - item.discount).toFixed(2)}
               </Text>
-              {/* Display selected contributors */}
               {item.selectedContributors.length > 0 && (
                 <Text style={styles.contributorsText}>
                   Contributors: {item.selectedContributors.join(', ')}
@@ -159,8 +135,7 @@ export default function DetailsScreen({ route, navigation }) {
           )}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
-  
-        {/* Modal for selecting contributors */}
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -188,35 +163,42 @@ export default function DetailsScreen({ route, navigation }) {
           </View>
         </Modal>
       </View>
-  
-      {/* Separate container for contributors and totals, outside the overarching container */}
+
       <View style={styles.totalsContainer}>
         <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-          <FlatList
-            data={contributors}
-            horizontal={true}
-            keyExtractor={(contributor) => contributor}
-            renderItem={({ item }) => (
-              <Text style={styles.totalText}>
-                {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
-              </Text>
-            )}
-            contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
-          />
-        <TouchableOpacity>
-          <Text style={styles.summButton}>View Summary</Text>
-        </TouchableOpacity>
-        
+        <FlatList
+          data={contributors}
+          horizontal={true}
+          keyExtractor={(contributor) => contributor}
+          renderItem={({ item }) => (
+            <Text style={styles.totalText}>
+              {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
+            </Text>
+          )}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+        />
+          <TouchableOpacity onPress={() => navigation.navigate('Breakdown', {
+            contributors,
+            itemsData: data.map(item => ({
+              itemName: item.itemName,
+              pricePerContributor: item.selectedContributors.reduce((acc, contributor) => {
+                const contributionAmount = (item.price - item.discount) / item.selectedContributors.length;
+                acc[contributor] = contributionAmount;
+                return acc;
+              }, {}),
+            }))
+          })}>
+            <Text style={styles.summButton}>View Summary</Text>
+          </TouchableOpacity>
       </View>
-
     </>
   );
-  
 }
+
 
 const styles = StyleSheet.create({
   addButton: {
-    backgroundColor: '#D7D7E3',  // Same background as the contributor box (or any color you want)
+    backgroundColor: '#fff',  // Same background as the contributor box (or any color you want)
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 20,           // Rounded corners
@@ -241,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#b9c5ed', // Purplish background
   },
   row: {
-    backgroundColor: '#D7D7E3', // White cards
+    backgroundColor: '#fff', // White cards
     padding: 10, // Adjust padding to make box smaller
     marginBottom: 10,
     borderRadius: 15, // Rounded edges
