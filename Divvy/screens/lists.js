@@ -95,14 +95,35 @@ export default function DetailsScreen({ route, navigation }) {
     setSelectedItemIndex(null);
   };
 
+  const handleViewSummary = () => {
+    const updatedData = contributors.map(contributor => {
+      return {
+        userName: contributor,
+        phoneNumber: '000-000-0000', // Placeholder, replace with actual logic if needed
+        items: data.filter(item => item.selectedContributors.includes(contributor)).map(item => ({
+          itemName: item.itemName,
+          storePrice: item.price.toFixed(2), // Use original price
+          sale: item.discount.toFixed(2),
+          split: item.selectedContributors, // Array of contributor names
+        })),
+      };
+    }).filter(user => user.items.length > 0); // Remove users with no items.
+ 
+    updatedData.TAX = 0; // Initialize tax, update if you have tax logic
+ 
+    navigation.navigate('Breakdown', { updatedData }); // Pass to Breakdown
+  };
+
   return (
     <>
+      {/* Overarching container */}
       <View style={styles.container}>
         <View style={styles.purpleSpace} />
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
-
+ 
+        {/* Add contributor button and input */}
         <View style={styles.addContributorContainer}>
           <TextInput
             style={styles.input}
@@ -113,8 +134,10 @@ export default function DetailsScreen({ route, navigation }) {
           <TouchableOpacity style={styles.addButton} onPress={addContributor}>
             <Text style={styles.addButtonText}>Add Contributor</Text>
           </TouchableOpacity>
+ 
         </View>
-
+ 
+        {/* List of items */}
         <FlatList
           data={data}
           keyExtractor={(item, index) => index.toString()}
@@ -126,6 +149,7 @@ export default function DetailsScreen({ route, navigation }) {
               <Text style={styles.adjustedPriceText}>
                 Adjusted Price: ${(item.price - item.discount).toFixed(2)}
               </Text>
+              {/* Display selected contributors */}
               {item.selectedContributors.length > 0 && (
                 <Text style={styles.contributorsText}>
                   Contributors: {item.selectedContributors.join(', ')}
@@ -135,7 +159,8 @@ export default function DetailsScreen({ route, navigation }) {
           )}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
-
+ 
+        {/* Modal for selecting contributors */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -163,36 +188,30 @@ export default function DetailsScreen({ route, navigation }) {
           </View>
         </Modal>
       </View>
-
+ 
+      {/* Separate container for contributors and totals, outside the overarching container */}
       <View style={styles.totalsContainer}>
         <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-        <FlatList
-          data={contributors}
-          horizontal={true}
-          keyExtractor={(contributor) => contributor}
-          renderItem={({ item }) => (
-            <Text style={styles.totalText}>
-              {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
-            </Text>
-          )}
-          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
-        />
-          <TouchableOpacity onPress={() => navigation.navigate('Breakdown', {
-            contributors,
-            itemsData: data.map(item => ({
-              itemName: item.itemName,
-              pricePerContributor: item.selectedContributors.reduce((acc, contributor) => {
-                const contributionAmount = (item.price - item.discount) / item.selectedContributors.length;
-                acc[contributor] = contributionAmount;
-                return acc;
-              }, {}),
-            }))
-          })}>
-            <Text style={styles.summButton}>View Summary</Text>
-          </TouchableOpacity>
+          <FlatList
+            data={contributors}
+            horizontal={true}
+            keyExtractor={(contributor) => contributor}
+            renderItem={({ item }) => (
+              <Text style={styles.totalText}>
+                {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
+              </Text>
+            )}
+            contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+          />
+        <TouchableOpacity onPress={handleViewSummary}>
+          <Text style={styles.summButton}>View Summary</Text>
+        </TouchableOpacity>
+       
       </View>
+ 
     </>
   );
+ 
 }
 
 
