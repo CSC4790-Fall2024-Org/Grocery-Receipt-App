@@ -38,7 +38,7 @@ const calculateYourCost = (storePrice, sale, split) => {
  
 const DATA1 = [
   {
-    userName: 'Luke',
+    userName: 'Something Broke',
     phoneNumber: '000-000-0000',
     items: [
       { itemName: 'Garden Salsa Chips', storePrice: '120.00', split: [names[0], names[1]], sale: '100.00' },
@@ -48,39 +48,9 @@ const DATA1 = [
       { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[6], names[0], names[0], names[0], names[0]], sale: '1.50' }
     ],
 },
-{
-  userName: 'Charlie',  // New user
-  phoneNumber: '000-000-0000',
-  items: [
-    { itemName: '2% Milk', storePrice: '5.00', split: [names[1], names[2]], sale: '1.00' },
-    { itemName: 'Non-Pasturized Milk', storePrice: '4.00', split: [names[3]], sale: '0.75' },
-    { itemName: 'Goat Milk', storePrice: '3.00', split: [names[3]], sale: '0.55' },
-    { itemName: 'Sheep Milk', storePrice: '2.00', split: [names[3]], sale: '0.25' },
-  ],
-},
-{
-  userName: 'Joey',  // New user
-  phoneNumber: '000-000-0000',
-  items: [
-    { itemName: 'Dairy-Free Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '1.00' },
-    { itemName: 'Gluten-Free Bread', storePrice: '4.00', split: [names[3]], sale: '0.75' },
-    { itemName: 'DF & GF Bars', storePrice: '18.00', split: [names[3]], sale: '0.55' },
-    { itemName: 'White Rice', storePrice: '40.00', split: [names[3]], sale: '0.25' },
-  ],
-},
-{
-userName: 'Daniel',  // New user
-phoneNumber: '000-000-0000',
-  items: [
-    { itemName: 'Shredded Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '1.00' },
-    { itemName: '3x Chicken Cutlets', storePrice: '20.00', split: [names[3]], sale: '0.75' },
-    { itemName: 'Liquid Egg Whites', storePrice: '18.00', split: [names[3]], sale: '0.55' },
-    { itemName: 'Gatorage', storePrice: '14.00', split: [names[3]], sale: '0.25' },
-  ],
-},
 ];
  
-const TAX = 4.50;
+// const TAX = 4.50;
  
 // Function to get the sum of a specific category for a given user
 const getCategoryTotal = (data, category) => {
@@ -241,28 +211,35 @@ return (
   );
 };
  
-const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar }) => {
-  const numUsers = data.length;
-  const totalTax = TAX;
-  const taxPerPerson = numUsers > 0 ? (totalTax / numUsers).toFixed(2) : 0;
-  const totalsByUser = data.map(user => {
-    const userSubtotal = user.items.reduce((sum, item) => {
-      return sum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
-    }, 0);
+const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBottomBar }) => {
+    const numUsers = data.length;
+  
+    // Use receiptEndVariables for totals
+    const totalTax = parseFloat(receiptEndVariables.tax) || 0; 
+    const totalSubtotal = parseFloat(receiptEndVariables.subtotal) || 0;
+    const totalTotal = parseFloat(receiptEndVariables.total) || 0;
+  
+  
+    const taxPerPerson = numUsers > 0 ? (totalTax / numUsers).toFixed(2) : 0;
+  
+    // Calculate individual user totals (you might adjust this based on your exact split logic)
+    const totalsByUser = data.map(user => {
+      const userSubtotal = user.items.reduce((sum, item) => {
+        return sum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
+      }, 0);
+  
+      const userTax = parseFloat(taxPerPerson); 
+      const userTotal = userSubtotal + userTax;
+  
+      return {
+        userName: user.userName,
+        subtotal: userSubtotal.toFixed(2),
+        total: userTotal.toFixed(2),
+      };
+    });
  
-    const userTax = parseFloat(taxPerPerson); // Use taxPerPerson
-    const userTotal = userSubtotal + userTax;
- 
-    return {
-      userName: user.userName,
-      subtotal: userSubtotal.toFixed(2),
-      total: userTotal.toFixed(2),
-    };
-  });
- 
-  const totalSubtotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.subtotal), 0).toFixed(2);
- 
-  const totalTotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.total), 0).toFixed(2);
+//   totalSubtotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.subtotal), 0).toFixed(2);
+//   totalTotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.total), 0).toFixed(2);
   // console.log("totalsByUser:", totalsByUser);
   return (
     <View style={[styles.bottomBarContainer, isBottomBarExpanded && styles.expandedBottomBar]}>
@@ -302,7 +279,7 @@ const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar }) => {
               <View style={styles.categoryLabelCell}>
                 <Text style={styles.categoryText}>Tax:</Text>
               </View>
-              <Text style={[styles.allDataText, {color: colors.taxColor}]}>{currency}{totalTax.toFixed(2)}</Text>
+              <Text style={[styles.allDataText, {color: colors.taxColor}]}>{currency}{totalTax}</Text>
               {data.map(user => (
                 <Text key={user.userName} style={[styles.userDataText, {color: colors.taxColor}]}>{currency}{taxPerPerson}</Text>
               ))}
@@ -470,6 +447,7 @@ export default function Breakdown() {
         </View>
         <BottomBar
                   data={data1}
+                  receiptEndVariables={initialData.receiptEndVariables}
                   isBottomBarExpanded={isBottomBarExpanded}
                   toggleBottomBar={toggleBottomBar}
               />
@@ -826,7 +804,7 @@ const styles = StyleSheet.create({
   },
   allDataText: {     // "All" data
     minWidth: 64,
-    maxWidth: 64,
+    maxWidth: 70,
     marginRight: 0,
     fontSize: 14,
     fontFamily: 'monospace',
