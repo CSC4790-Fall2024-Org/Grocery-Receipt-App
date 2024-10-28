@@ -11,30 +11,67 @@ export default function DetailsScreen({ route, navigation }) {
   const [selectedItemIndex, setSelectedItemIndex] = useState(null);
   const [data, setData] = useState([]);
   const [contributorTotals, setContributorTotals] = useState({});
+  const [receiptEndVariables, setReceiptEndVariables] = useState({ subtotal: 0, tax: 0, total: 0 });
 
+  // useEffect(() => {
+  //   const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
+  //   const itemNamesList = [];
+  //   const prices = [];
+  //   const discounts = [];
+
+  //   const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
+  //   let match;
+
+  //   while ((match = itemRegex.exec(inputString)) !== null) {
+  //     itemNamesList.push(match[1]);
+  //     prices.push(parseFloat(match[2]));
+  //     discounts.push(parseFloat(match[3]));
+  //   }
+
+  //   const initialData = itemNamesList.map((item, index) => ({
+  //     itemName: item,
+  //     price: prices[index],
+  //     discount: discounts[index],
+  //     selectedContributors: [],
+  //   }));
+
+  //   setData(initialData);
+  // }, [rawGeminiResult]);
+  
   useEffect(() => {
     const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
-    const itemNamesList = [];
-    const prices = [];
-    const discounts = [];
-
+    const items = [];
+  
+    // 1. Extract Items using itemRegex
     const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
     let match;
-
     while ((match = itemRegex.exec(inputString)) !== null) {
-      itemNamesList.push(match[1]);
-      prices.push(parseFloat(match[2]));
-      discounts.push(parseFloat(match[3]));
+      items.push({
+        itemName: match[1],
+        price: parseFloat(match[2]),
+        discount: parseFloat(match[3]),
+        selectedContributors: [],
+      });
     }
-
-    const initialData = itemNamesList.map((item, index) => ({
-      itemName: item,
-      price: prices[index],
-      discount: discounts[index],
-      selectedContributors: [],
-    }));
-
-    setData(initialData);
+  
+    setData(items); // Set the items data
+  
+    // 2. Extract subtotal, tax, total (after item extraction)
+    const totalsRegex = /"subtotal":\s*([\d.]+),\s*"tax":\s*([\d.]+),\s*"total":\s*([\d.]+)/;
+    const totalsMatch = totalsRegex.exec(inputString);
+  
+    if (totalsMatch) {
+      setReceiptEndVariables({
+        subtotal: parseFloat(totalsMatch[1]) || 0,
+        tax: parseFloat(totalsMatch[2]) || 0,
+        total: parseFloat(totalsMatch[3]) || 0,
+      });
+    } else {
+      console.error("Regex for totals matching failed. Could not extract values.");
+      // Handle the failure - set defaults or show an error
+      setReceiptEndVariables({ subtotal: 0, tax: 0, total: 0 }); 
+    }
+  
   }, [rawGeminiResult]);
 
   const addContributor = () => {
@@ -109,7 +146,7 @@ export default function DetailsScreen({ route, navigation }) {
       };
     }).filter(user => user.items.length > 0); // Remove users with no items.
  
-    updatedData.TAX = 0; // Initialize tax, update if you have tax logic
+    updatedData.receiptEndVariables = receiptEndVariables; // Initialize tax, update if you have tax logic
  
     navigation.navigate('Breakdown', { updatedData }); // Pass to Breakdown
   };
