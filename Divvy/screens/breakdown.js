@@ -382,12 +382,12 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
 const NavigationBar = ({ title, navigation}) => {
  
   const handleGoBack = () => {
-    console.log("Go Backward pressed!");
+    //console.log("Go Backward pressed!");
     navigation.goBack();
   };
  
   const handleGoForward = () => {
-    console.log("Go Forward pressed!");
+    //console.log("Go Forward pressed!");
   };
  
   const VenmoLogo = require('../assets/Venmo_Logo.png');
