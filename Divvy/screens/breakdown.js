@@ -5,13 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 import { useNavigation, useRoute } from '@react-navigation/native';
  
 // Fixed list of names
-const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden', 'William', 'Daniel', 'Sara', 'Alex', 'Mike'];
+const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden'];
 const currency = "$";  // Adding the currency constant
  
 const colors = {
   saleColor: 'red',
   yourCostColor: 'green',
-  backgroundcolor: '#e1e8f3', //Purple background
+  backgroundColor: '#e1e8f3', //Purple background
   cardColor: '#fbfbfb',  //inside cards
   breakdownColor: '#faf9fb', //bottom breakdown tab
   highlightColor: '#d2edfd',
@@ -44,8 +44,8 @@ const DATA1 = [
       { itemName: 'Garden Salsa Chips', storePrice: '120.00', split: [names[0], names[1]], sale: '100.00' },
       { itemName: 'Nerds Gummy Clusters', storePrice: '3.00', split: [names[2]], sale: '0.50' },
       { itemName: 'Snickerdoodle Cookies', storePrice: '12.00', split: [names[3], names[4]], sale: '0.20' },
-      { itemName: 'Peanut Butter Cookies', storePrice: '5.00', split: [names[5]], sale: '0.30' },
-      { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[6], names[0], names[0], names[0], names[0]], sale: '1.50' }
+      { itemName: 'Peanut Butter Cookies', storePrice: '5.00', split: [names[4]], sale: '0.30' },
+      { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[2], names[0], names[0], names[0], names[0]], sale: '1.50' }
     ],
 },
 ];
@@ -144,13 +144,15 @@ const Row = ({ itemName, storePrice, split, sale, isSelected, userName, toggleSe
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => toggleFieldExpansion('sale')}style={styles.touchableContainer}>
-          <View style={[
-            styles.saleContainer,
-            { height: expandedField === 'sale' ? splitHeight :  15 },
-            expandedField === 'sale' && styles.expandedDataContainer
-          ]}>
-            <Text style={[styles.saleText, isSelected && styles.boldText]}>{'-'}{currency}{sale}</Text>
-          </View>
+                <View style={[
+        styles.saleContainer,
+        { height: expandedField === 'sale' ? splitHeight : 15 },
+        expandedField === 'sale' && styles.expandedDataContainer
+        ]}>
+        <Text style={[styles.saleText, isSelected && styles.boldText]}>
+        {parseFloat(sale) > 0 ? `-${(parseFloat(sale)).toFixed(2)}` : `0.00`}
+        </Text>
+        </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => toggleFieldExpansion('storePrice')} style={styles.touchableContainer}>
           <View style={[
@@ -458,7 +460,7 @@ export default function Breakdown() {
 const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
-    backgroundColor: '#e1e8f3', // Background color
+    backgroundColor: colors.backgroundColor, // Background color
     paddingVertical: 5,
     paddingHorizontal: 2,
   },
@@ -545,49 +547,61 @@ const styles = StyleSheet.create({
   // Individual containers for each field in the right container
   yourCostContainer: {
     marginLeft: 0,
-    width: 50,
+    // width: 50,
+    width: Dimensions.get('window').width*.11,
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
   splitContainer: {
-    width: 60,
+    // width: 60,
+    width: Dimensions.get('window').width*.13,
     marginLeft: 7,
     justifyContent: 'center',
     alignItems: 'center',
   },
   saleContainer: {
-    width: 54,
+    width: Dimensions.get('window').width*.13,
+    // width: 54,
     justifyContent: 'center',
     alignItems: 'flex-end',
     marginLeft: -2,
   },
   storePriceContainer: {
-    width: 50,
-    marginLeft:5,
+    // width: 50,
+    width: Dimensions.get('window').width*.13,
+    // marginLeft:5,
+    marginLeft: Dimensions.get('window').width*.001,
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
   yourCostHeaderContainer: {
-    width: 70,
+    // width: 70,
+    width: Dimensions.get('window').width*.17,
     marginLeft: -12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   splitHeaderContainer: {
-    width: 40,
-    marginLeft: 4,
+    // width: 40,
+    width: Dimensions.get('window').width*.09,
+    // marginLeft: 4,
+    marginLeft: Dimensions.get('window').width*-.008,
     justifyContent: 'center',
     alignItems: 'center',
   },
   saleHeaderContainer: {
-    width: 40,
-    marginLeft: 19,
+    // width: 40,
+    width: Dimensions.get('window').width*.09,
+    // marginLeft: 19,
+    marginLeft: Dimensions.get('window').width*.0485,
     justifyContent: 'center',
     alignItems: 'center',
   },
   storePriceHeaderContainer: {
-    width: 40,
-    marginLeft: 17,
+    // width: 40,
+    width: Dimensions.get('window').width*.10,
+    // marginLeft: 17,
+    marginLeft: Dimensions.get('window').width*.035,
     justifyContent: 'center',
     alignItems: 'center',
   },
