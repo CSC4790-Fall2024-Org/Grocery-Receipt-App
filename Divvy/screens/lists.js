@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, TextInput, Modal } from 'react-native';
+import * as Contacts from 'expo-contacts';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function DetailsScreen({ route, navigation }) {
-  const { rawGeminiResult } = route.params || {}; // Default to empty object if no params
+  const { rawGeminiResult } = route.params || {};
   const [contributors, setContributors] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [contributorPhones, setContributorPhones] = useState({});
+  const [filteredContacts, setFilteredContacts] = useState([]);
   const [newContributor, setNewContributor] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState(null);
@@ -13,36 +17,65 @@ export default function DetailsScreen({ route, navigation }) {
   const [contributorTotals, setContributorTotals] = useState({});
   const [receiptEndVariables, setReceiptEndVariables] = useState({ subtotal: 0, tax: 0, total: 0 });
 
-  // useEffect(() => {
-  //   const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
-  //   const itemNamesList = [];
-  //   const prices = [];
-  //   const discounts = [];
+  useEffect(() => {
+    const fetchContacts = async () => {
+      const { status } = await Contacts.requestPermissionsAsync();
+      if (status === 'granted') {
+        const { data } = await Contacts.getContactsAsync({
+          fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers],
+        });
+        setContacts(data);
+      }
+    };
 
-  //   const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
-  //   let match;
+    fetchContacts();
+  }, []);
 
-  //   while ((match = itemRegex.exec(inputString)) !== null) {
-  //     itemNamesList.push(match[1]);
-  //     prices.push(parseFloat(match[2]));
-  //     discounts.push(parseFloat(match[3]));
-  //   }
+  useEffect(() => {
+    if (newContributor.length > 0) {
+      const filtered = contacts.filter(contact =>
+        contact.name?.toLowerCase().includes(newContributor.toLowerCase())
+      );
+      setFilteredContacts(filtered);
+    } else {
+      setFilteredContacts([]);
+    }
+  }, [newContributor, contacts]);
 
-  //   const initialData = itemNamesList.map((item, index) => ({
-  //     itemName: item,
-  //     price: prices[index],
-  //     discount: discounts[index],
-  //     selectedContributors: [],
-  //   }));
-
-  //   setData(initialData);
-  // }, [rawGeminiResult]);
+  const normalizePhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return ''; // Handle undefined or empty case
   
+    // Remove all non-numeric characters
+    const cleaned = phoneNumber.replace(/\D/g, '');
+  
+    // Check if it's already in international format (starts with +1 for US numbers)
+    if (cleaned.length === 10) {
+      return `+1${cleaned}`; // Assume it's a US number if it's 10 digits, and add +1
+    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      return `+${cleaned}`; // Format as +1XXXXXXXXXX if it starts with a 1
+    } else {
+      return `+${cleaned}`; // Return as is if it doesn't fit common patterns (or add custom logic for other cases)
+    }
+  };
+  
+
+  const addContributor = (name, phoneNumber) => {
+    if (name.trim()) {
+      // Only normalize if phoneNumber is defined
+      const normalizedNumber = phoneNumber ? normalizePhoneNumber(phoneNumber) : '';
+  
+      setContributors((prev) => [...prev, name]);
+      setContributorPhones((prev) => ({ ...prev, [name]: normalizedNumber }));
+      setContributorTotals((prev) => ({ ...prev, [name]: 0 }));
+      setNewContributor('');
+      setFilteredContacts([]);
+    }
+  };
+  
+
   useEffect(() => {
     const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
     const items = [];
-  
-    // 1. Extract Items using itemRegex
     const itemRegex = /"itemname":\s*"([^"]+)",\s*"pricename":\s*([\d.]+),\s*"discountamount":\s*([\d.]+)/g;
     let match;
     while ((match = itemRegex.exec(inputString)) !== null) {
@@ -53,13 +86,10 @@ export default function DetailsScreen({ route, navigation }) {
         selectedContributors: [],
       });
     }
-  
-    setData(items); // Set the items data
-  
-    // 2. Extract subtotal, tax, total (after item extraction)
+    setData(items);
+
     const totalsRegex = /"subtotal":\s*([\d.]+),\s*"tax":\s*([\d.]+),\s*"total":\s*([\d.]+)/;
     const totalsMatch = totalsRegex.exec(inputString);
-  
     if (totalsMatch) {
       setReceiptEndVariables({
         subtotal: parseFloat(totalsMatch[1]) || 0,
@@ -67,20 +97,9 @@ export default function DetailsScreen({ route, navigation }) {
         total: parseFloat(totalsMatch[3]) || 0,
       });
     } else {
-      console.error("Regex for totals matching failed. Could not extract values.");
-      // Handle the failure - set defaults or show an error
-      setReceiptEndVariables({ subtotal: 0, tax: 0, total: 0 }); 
+      setReceiptEndVariables({ subtotal: 0, tax: 0, total: 0 });
     }
-  
   }, [rawGeminiResult]);
-
-  const addContributor = () => {
-    if (newContributor.trim()) {
-      setContributors([...contributors, newContributor]);
-      setContributorTotals((prev) => ({ ...prev, [newContributor]: 0 }));
-      setNewContributor('');
-    }
-  };
 
   const handleRowPress = (index) => {
     setSelectedItemIndex(index);
@@ -94,17 +113,14 @@ export default function DetailsScreen({ route, navigation }) {
       const adjustedPrice = item.price - item.discount;
       const previousContributors = [...(item.selectedContributors || [])];
 
-      // Update selected contributors
       if (item.selectedContributors.includes(contributor)) {
         item.selectedContributors = item.selectedContributors.filter(c => c !== contributor);
       } else {
         item.selectedContributors = [...item.selectedContributors, contributor];
       }
 
-      // Update contributor totals
       setContributorTotals((prevTotals) => {
         const newTotals = { ...prevTotals };
-
         previousContributors.forEach(c => {
           newTotals[c] -= adjustedPrice / previousContributors.length;
         });
@@ -136,31 +152,28 @@ export default function DetailsScreen({ route, navigation }) {
     const updatedData = contributors.map(contributor => {
       return {
         userName: contributor,
-        phoneNumber: '000-000-0000', // Placeholder, replace with actual logic if needed
+        phoneNumber: contributorPhones[contributor] || 'test',
+        // phoneNumber: "Hello",
         items: data.filter(item => item.selectedContributors.includes(contributor)).map(item => ({
           itemName: item.itemName,
-          storePrice: item.price.toFixed(2), // Use original price
+          storePrice: item.price.toFixed(2),
           sale: item.discount.toFixed(2),
-          split: item.selectedContributors, // Array of contributor names
+          split: item.selectedContributors,
         })),
       };
-    }).filter(user => user.items.length > 0); // Remove users with no items.
- 
-    updatedData.receiptEndVariables = receiptEndVariables; // Initialize tax, update if you have tax logic
- 
-    navigation.navigate('Breakdown', { updatedData }); // Pass to Breakdown
+    }).filter(user => user.items.length > 0);
+
+    updatedData.receiptEndVariables = receiptEndVariables;
+    navigation.navigate('Breakdown', { updatedData });
   };
 
   return (
     <>
-      {/* Overarching container */}
       <View style={styles.container}>
-        <View style={styles.purpleSpace} />
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
-          <Ionicons name="arrow-back" size={24} color="black" />
+      <View style={styles.purpleSpace} />
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+        <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
- 
-        {/* Add contributor button and input */}
         <View style={styles.addContributorContainer}>
           <TextInput
             style={styles.input}
@@ -168,13 +181,25 @@ export default function DetailsScreen({ route, navigation }) {
             value={newContributor}
             onChangeText={setNewContributor}
           />
-          <TouchableOpacity style={styles.addButton} onPress={addContributor}>
+          <TouchableOpacity style={styles.addButton} onPress={() => addContributor(newContributor)}>
             <Text style={styles.addButtonText}>Add Contributor</Text>
           </TouchableOpacity>
- 
         </View>
- 
-        {/* List of items */}
+
+        {filteredContacts.length > 0 && (
+          <View style={styles.contactsDropdown}>
+            {filteredContacts.map((contact, index) => (
+              <TouchableOpacity key={index} onPress={() => addContributor(
+                contact.name, 
+                contact.phoneNumbers?.[0]?.number
+              )}>
+                <Text style={styles.contactText}>{contact.name}</Text>
+                <Text style={styles.contactPhone}>{contact.phoneNumbers?.[0]?.number || ''}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <FlatList
           data={data}
           keyExtractor={(item, index) => index.toString()}
@@ -186,7 +211,6 @@ export default function DetailsScreen({ route, navigation }) {
               <Text style={styles.adjustedPriceText}>
                 Adjusted Price: ${(item.price - item.discount).toFixed(2)}
               </Text>
-              {/* Display selected contributors */}
               {item.selectedContributors.length > 0 && (
                 <Text style={styles.contributorsText}>
                   Contributors: {item.selectedContributors.join(', ')}
@@ -196,8 +220,7 @@ export default function DetailsScreen({ route, navigation }) {
           )}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
- 
-        {/* Modal for selecting contributors */}
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -225,34 +248,32 @@ export default function DetailsScreen({ route, navigation }) {
           </View>
         </Modal>
       </View>
- 
-      {/* Separate container for contributors and totals, outside the overarching container */}
+
       <View style={styles.totalsContainer}>
         <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-          <FlatList
-            data={contributors}
-            horizontal={true}
-            keyExtractor={(contributor) => contributor}
-            renderItem={({ item }) => (
-              <Text style={styles.totalText}>
-                {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
-              </Text>
-            )}
-            contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
-          />
+        <FlatList
+          data={contributors}
+          horizontal={true}
+          keyExtractor={(contributor) => contributor}
+          renderItem={({ item }) => (
+            <Text style={styles.totalText}>
+              {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
+            </Text>
+          )}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+        />
         <TouchableOpacity onPress={handleViewSummary}>
           <Text style={styles.summButton}>View Summary</Text>
         </TouchableOpacity>
-       
       </View>
- 
     </>
   );
- 
 }
 
-
 const styles = StyleSheet.create({
+  contactsDropdown: { marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 4 },
+  contactText: { padding: 8, fontWeight: 'bold' },
+  contactPhone: { paddingLeft: 8, paddingBottom: 8, color: 'gray' },
   addButton: {
     backgroundColor: '#fff',  // Same background as the contributor box (or any color you want)
     paddingVertical: 10,

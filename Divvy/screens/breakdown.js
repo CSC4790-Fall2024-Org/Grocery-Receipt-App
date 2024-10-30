@@ -74,7 +74,7 @@ const getSplitDisplayNames = (split) => {
   return split.map(name => name.substring(0, 2).toUpperCase());
 };
  
-const Row = ({ itemName, storePrice, split, sale, isSelected, userName, toggleSelect, currency }) => {
+const Row = ({ itemName, storePrice, split, sale, isSelected, userName, toggleSelect, currency, phoneNumber }) => {
   const [expandedField, setExpandedField] = useState(null);
   const [splitHeight, setSplitHeight] = useState(0);
  
@@ -318,7 +318,7 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
       <View style={styles.innerContainer}>
         <View style={styles.headerContainer}>
           <View style={styles.userNameContainer}>
-            <Text style={styles.userNameText}>{data.userName}</Text>
+            <Text style={styles.userNameText}>{data.userName}{data.phoneNumber}</Text>
           </View>
           <View style={styles.yourCostHeaderContainer}>
             <Text style={styles.headerText}>Owed</Text>
@@ -361,12 +361,12 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
 const NavigationBar = ({ title, navigation}) => {
  
   const handleGoBack = () => {
-    console.log("Go Backward pressed!");
+    //console.log("Go Backward pressed!");
     navigation.goBack();
   };
  
   const handleGoForward = () => {
-    console.log("Go Forward pressed!");
+    //console.log("Go Forward pressed!");
   };
  
   const VenmoLogo = require('../assets/Venmo_Logo.png');
