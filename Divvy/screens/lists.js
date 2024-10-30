@@ -8,6 +8,7 @@ export default function DetailsScreen({ route, navigation }) {
   const { rawGeminiResult } = route.params || {};
   const [contributors, setContributors] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [contributorPhones, setContributorPhones] = useState({});
   const [filteredContacts, setFilteredContacts] = useState([]);
   const [newContributor, setNewContributor] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,14 +42,36 @@ export default function DetailsScreen({ route, navigation }) {
     }
   }, [newContributor, contacts]);
 
-  const addContributor = (contributorName) => {
-    if (contributorName.trim()) {
-      setContributors([...contributors, contributorName]);
-      setContributorTotals((prev) => ({ ...prev, [contributorName]: 0 }));
+  const normalizePhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return ''; // Handle undefined or empty case
+  
+    // Remove all non-numeric characters
+    const cleaned = phoneNumber.replace(/\D/g, '');
+  
+    // Check if it's already in international format (starts with +1 for US numbers)
+    if (cleaned.length === 10) {
+      return `+1${cleaned}`; // Assume it's a US number if it's 10 digits, and add +1
+    } else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+      return `+${cleaned}`; // Format as +1XXXXXXXXXX if it starts with a 1
+    } else {
+      return `+${cleaned}`; // Return as is if it doesn't fit common patterns (or add custom logic for other cases)
+    }
+  };
+  
+
+  const addContributor = (name, phoneNumber) => {
+    if (name.trim()) {
+      // Only normalize if phoneNumber is defined
+      const normalizedNumber = phoneNumber ? normalizePhoneNumber(phoneNumber) : '';
+  
+      setContributors((prev) => [...prev, name]);
+      setContributorPhones((prev) => ({ ...prev, [name]: normalizedNumber }));
+      setContributorTotals((prev) => ({ ...prev, [name]: 0 }));
       setNewContributor('');
       setFilteredContacts([]);
     }
   };
+  
 
   useEffect(() => {
     const inputString = rawGeminiResult.replace(/```json\s*|\s*```/g, '');
@@ -129,6 +152,8 @@ export default function DetailsScreen({ route, navigation }) {
     const updatedData = contributors.map(contributor => {
       return {
         userName: contributor,
+        phoneNumber: contributorPhones[contributor] || 'test',
+        // phoneNumber: "Hello",
         items: data.filter(item => item.selectedContributors.includes(contributor)).map(item => ({
           itemName: item.itemName,
           storePrice: item.price.toFixed(2),
@@ -164,7 +189,10 @@ export default function DetailsScreen({ route, navigation }) {
         {filteredContacts.length > 0 && (
           <View style={styles.contactsDropdown}>
             {filteredContacts.map((contact, index) => (
-              <TouchableOpacity key={index} onPress={() => addContributor(contact.name)}>
+              <TouchableOpacity key={index} onPress={() => addContributor(
+                contact.name, 
+                contact.phoneNumbers?.[0]?.number
+              )}>
                 <Text style={styles.contactText}>{contact.name}</Text>
                 <Text style={styles.contactPhone}>{contact.phoneNumbers?.[0]?.number || ''}</Text>
               </TouchableOpacity>
