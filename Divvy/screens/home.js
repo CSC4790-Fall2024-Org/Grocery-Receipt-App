@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Button, Image, StyleSheet, Alert, Text, ScrollView, TouchableOpacity, Modal, ActivityIndicator, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import AWS from 'aws-sdk';
@@ -10,6 +10,11 @@ import { useNavigation } from '@react-navigation/native';
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 AWS.config.update(awsConfig);
+
+const fonts = {
+    itemFont: Platform.OS === 'ios' ? 'System' : 'sans-serif', // 'System' is San Francisco on iOS
+    boldFont: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+};
 
 export default function App() {
 
@@ -23,9 +28,10 @@ export default function App() {
 
     useEffect(() => {
         (async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert('Sorry, we need camera roll permissions to make this work!');
+            const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+            const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (cameraStatus.status !== 'granted' || libraryStatus.status !== 'granted') {
+                Alert.alert('Sorry, we need permissions to make this work!');
             }
         })();
     }, []);
@@ -52,6 +58,12 @@ export default function App() {
     };
 
     const takePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            alert('Camera access is required to take photos');
+            return;
+        }
+
         let result = await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -60,8 +72,8 @@ export default function App() {
         });
 
         if (!result.canceled) {
-            setImage(result.assets[0].uri); // Set the taken image
-            setExtractedText(''); // Clear previous extracted text
+            setImage(result.assets ? result.assets[0].uri : result.uri);  // Update URI handling
+            console.log('Image URI:', result.assets ? result.assets[0].uri : result.uri); // Log URI for debugging
         }
     };
 
@@ -239,19 +251,19 @@ export default function App() {
                 source={require('../assets/logo.jpeg')}
                 style={styles.backgroundImage}
             />
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {image && <Image source={{ uri: image }} style={styles.image} />}
+            {image && <Image source={{ uri: image }} style={styles.image} />}
                 
-                {/* Upload and Analyze button */}
-                {loading ? (
+            {/* Upload and Analyze button */}
+            {image && (
+                loading ? (
                     <ActivityIndicator size="large" color="#6483EA" />
                 ) : (
                     <TouchableOpacity style={styles.uploadButton} onPress={handleUploadAndNavigate}>
                         <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
                     </TouchableOpacity>
-                )}
+                )
+            )}
                 
-            </ScrollView>
 
             <View style={styles.navbar}>
                 <TouchableOpacity style={styles.navbarItem} onPress={toggleModal}>
@@ -269,16 +281,16 @@ export default function App() {
                 animationType="none"
                 onRequestClose={toggleModal}
             >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
+                <TouchableOpacity style={styles.modalOverlay} onPress={toggleModal} activeOpacity={1}>
+                    <View style={[styles.modalContainer, { bottom: 120 }]}>
                         <TouchableOpacity onPress={handleOption1} style={styles.modalOption}>
-                            <Text>Take a photo</Text>
+                            <Text style={styles.modalText}>Take a photo</Text>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleOption2} style={styles.modalOption}>
-                            <Text>Upload from camera roll</Text>
+                            <Text style={styles.modalText}>Upload from camera roll</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </TouchableOpacity>
             </Modal>
         </View>
     );
@@ -289,7 +301,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
     backgroundColor: '#b9c5ed',
   },
   scrollContent: {
@@ -313,30 +324,35 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   uploadButton: {
+    marginTop: 5,                // Positions it at the top of the screen
+    width: '40%', 
     backgroundColor: '#faf9fb',  // Same background as the contributor box (or any color you want)
     borderRadius: 30,           // Rounded corners
-    marginTop: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 5,       // Padding to give space on left and right
+    paddingHorizontal: 10,       // Padding to give space on left and right
     paddingVertical: 5,         // Padding for top and bottom
-    height: '10%',
+    height: '5%',
   },
   uploadButtonText: {
-    color: 'black',             // Black text color
-    fontWeight: 'bold',         // Bold text
+    color: 'black',
+    fontWeight: '700',       // Use '700' as a string for consistency
     fontSize: 16,
     textAlign: 'center',
-    flex: 1,                       // Takes up full screen height
-    justifyContent: 'flex-start',   // Aligns content at the top
-    alignItems: 'flex-start',       // Aligns content to the left
-    paddingTop: 20,                 // Optional: adds some space at the top
-    paddingHorizontal: 10, 
+    fontFamily: fonts.boldFont,
+  },
+  navbar: {
+    position: 'absolute',
+    bottom: 20,               // Position slightly above the bottom of the screen
+    width: '100%',            // Full-width container
+    alignItems: 'center',      // Center child items horizontally
+    backgroundColor: 'transparent', // Optional background if needed
   },
   navbarItem: {
+    position: 'absolute', // Fixes the button position
+    bottom: 0, 
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 80,
     padding: 0,
     backgroundColor: '#faf9fb',
     borderRadius: 50,
@@ -352,12 +368,15 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     position: 'absolute',
-    bottom: 120, // Adjust this value depending on the button's height
+    top: 0,
+    bottom: 0, // Adjust this value depending on the button's height
     left: 0,
     right: 0,
     alignItems: 'center', // Center the modal horizontally relative to the screen
+    justifyContent: 'center',
   },
   modalContainer: {
+    position: 'absolute',
     width: 200,
     backgroundColor: '#fff',
     padding: 10,
@@ -386,4 +405,9 @@ const styles = StyleSheet.create({
     zIndex: -1,                 // Push it behind everything else
     opacity: 0.75,
   },
+  uploadButtonText: {
+    color: 'black',             // Black text color
+    //fontWeight: 'bold',         // Bold text
+    fontFamily: fonts.itemFont,
+    },
 });
