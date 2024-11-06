@@ -16,6 +16,8 @@ export default function DetailsScreen({ route, navigation }) {
   const [data, setData] = useState([]);
   const [contributorTotals, setContributorTotals] = useState({});
   const [receiptEndVariables, setReceiptEndVariables] = useState({ subtotal: 0, tax: 0, total: 0 });
+  const [editingItemIndex, setEditingItemIndex] = useState(null);
+
 
   useEffect(() => {
     const fetchContacts = async () => {
@@ -70,6 +72,18 @@ export default function DetailsScreen({ route, navigation }) {
       setNewContributor('');
       setFilteredContacts([]);
     }
+  };
+  const handleSaveEdit = (newPrice, newDiscount) => {
+    setData(prevData => {
+      const newData = [...prevData];
+      newData[editingItemIndex] = {
+        ...newData[editingItemIndex],
+        price: newPrice,
+        discount: newDiscount
+      };
+      return newData;
+    });
+    setEditingItemIndex(null);
   };
   
 
@@ -167,6 +181,57 @@ export default function DetailsScreen({ route, navigation }) {
     navigation.navigate('Breakdown', { updatedData });
   };
 
+
+  const EditItemModal = ({ item, onSave, onCancel }) => {
+    const [price, setPrice] = useState(item.price.toString());
+    const [discount, setDiscount] = useState(item.discount.toString());
+  
+    const handleSave = () => {
+      onSave(parseFloat(price), parseFloat(discount));
+    };
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={true}
+        onRequestClose={onCancel}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit {item.itemName}</Text>
+            
+            <Text style={styles.modalLabel}>Price:</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Price"
+              keyboardType="numeric"
+              value={price}
+              onChangeText={setPrice}
+            />
+            
+            <Text style={styles.modalLabel}>Discount:</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Discount"
+              keyboardType="numeric"
+              value={discount}
+              onChangeText={setDiscount}
+            />
+  
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  
+
   return (
     <>
       <View style={styles.container}>
@@ -216,10 +281,25 @@ export default function DetailsScreen({ route, navigation }) {
                   Contributors: {item.selectedContributors.join(', ')}
                 </Text>
               )}
+              <TouchableOpacity 
+                style={styles.editButton} 
+                onPress={() => setEditingItemIndex(index)}
+              >
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
           )}
+          
           contentContainerStyle={{ paddingBottom: 20 }}
         />
+        {editingItemIndex !== null && (
+  <EditItemModal
+    item={data[editingItemIndex]}
+    onSave={handleSaveEdit}
+    onCancel={() => setEditingItemIndex(null)}
+  />
+)}
+
 
         <Modal
           animationType="slide"
@@ -274,6 +354,52 @@ const styles = StyleSheet.create({
   contactsDropdown: { marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 4 },
   contactText: { padding: 8, fontWeight: 'bold' },
   contactPhone: { paddingLeft: 8, paddingBottom: 8, color: 'gray' },
+  editButton: {
+    backgroundColor: '#5B72C0',
+    padding: 5,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  editButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 5,
+    marginBottom: 10,
+  },
+  saveButton: {
+    backgroundColor: '#5B72C0',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+  },
   addButton: {
     backgroundColor: '#fff',  // Same background as the contributor box (or any color you want)
     paddingVertical: 10,
