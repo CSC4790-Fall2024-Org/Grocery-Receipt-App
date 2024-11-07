@@ -34,6 +34,10 @@ export default function DetailsScreen({ route, navigation }) {
   }, []);
 
   useEffect(() => {
+    updateContributorTotals(data);
+  }, [data]);
+
+  useEffect(() => {
     if (newContributor.length > 0) {
       const filtered = contacts.filter(contact =>
         contact.name?.toLowerCase().includes(newContributor.toLowerCase())
@@ -59,6 +63,24 @@ export default function DetailsScreen({ route, navigation }) {
       return `+${cleaned}`; // Return as is if it doesn't fit common patterns (or add custom logic for other cases)
     }
   };
+  const handleEditItem = (index) => {
+    setEditingItemIndex(index);
+  };
+
+  const updateContributorTotals = (updatedData) => {
+    const newTotals = {};
+    updatedData.forEach(item => {
+      const adjustedPrice = item.price - item.discount;
+      const splitPrice = adjustedPrice / item.selectedContributors.length;
+      item.selectedContributors.forEach(contributor => {
+        if (!newTotals[contributor]) {
+          newTotals[contributor] = 0;
+        }
+        newTotals[contributor] += splitPrice;
+      });
+    });
+    setContributorTotals(newTotals);
+  };  
   
 
   const addContributor = (name, phoneNumber) => {
@@ -74,15 +96,20 @@ export default function DetailsScreen({ route, navigation }) {
     }
   };
   const handleSaveEdit = (newPrice, newDiscount) => {
-    setData(prevData => {
-      const newData = [...prevData];
-      newData[editingItemIndex] = {
-        ...newData[editingItemIndex],
-        price: newPrice,
-        discount: newDiscount
-      };
-      return newData;
-    });
+    const updatedData = [...data];
+    updatedData[editingItemIndex] = {
+      ...updatedData[editingItemIndex],
+      price: newPrice,
+      discount: newDiscount
+    };
+    setData(updatedData);
+    setEditingItemIndex(null);
+    
+    // Recalculate contributor totals
+    updateContributorTotals(updatedData);
+  };
+  
+  const handleCancelEdit = () => {
     setEditingItemIndex(null);
   };
   
@@ -156,11 +183,16 @@ export default function DetailsScreen({ route, navigation }) {
       return newData;
     });
   };
-
   const handleSave = () => {
+    const updatedData = [...data];
+    // We don't need to update selectedContributors here as it's already part of the item
+    setData(updatedData);
     setModalVisible(false);
-    setSelectedItemIndex(null);
+    
+    // Recalculate contributor totals
+    updateContributorTotals(updatedData);
   };
+  
 
   const handleViewSummary = () => {
     const updatedData = contributors.map(contributor => {
@@ -181,15 +213,23 @@ export default function DetailsScreen({ route, navigation }) {
     navigation.navigate('Breakdown', { updatedData });
   };
 
-
   const EditItemModal = ({ item, onSave, onCancel }) => {
     const [price, setPrice] = useState(item.price.toString());
     const [discount, setDiscount] = useState(item.discount.toString());
   
     const handleSave = () => {
-      onSave(parseFloat(price), parseFloat(discount));
+      const newPrice = parseFloat(price);
+      const newDiscount = parseFloat(discount);
+      
+      if (isNaN(newPrice) || isNaN(newDiscount)) {
+        // Handle invalid input
+        alert('Please enter valid numbers for price and discount');
+        return;
+      }
+  
+      onSave(newPrice, newDiscount);
     };
-
+  
     return (
       <Modal
         animationType="slide"
@@ -222,6 +262,7 @@ export default function DetailsScreen({ route, navigation }) {
             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -230,6 +271,7 @@ export default function DetailsScreen({ route, navigation }) {
       </Modal>
     );
   };
+  
   
 
   return (
@@ -292,13 +334,14 @@ export default function DetailsScreen({ route, navigation }) {
           
           contentContainerStyle={{ paddingBottom: 20 }}
         />
-        {editingItemIndex !== null && (
+       {editingItemIndex !== null && (
   <EditItemModal
     item={data[editingItemIndex]}
     onSave={handleSaveEdit}
-    onCancel={() => setEditingItemIndex(null)}
+    onCancel={handleCancelEdit}
   />
 )}
+
 
 
         <Modal
