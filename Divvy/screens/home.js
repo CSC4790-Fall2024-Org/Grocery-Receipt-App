@@ -25,6 +25,7 @@ export default function App() {
     const [RawGeminiResult, setRawGeminiResult] = useState('');
     const [isModalVisible, setModalVisible] = useState(false); 
     const [loading, setLoading] = useState(false);
+    const [showUploadPrompt, setShowUploadPrompt] = useState(true);
 
     useEffect(() => {
         (async () => {
@@ -54,6 +55,7 @@ export default function App() {
         if (!result.canceled) {
             setImage(result.assets[0].uri);
             setExtractedText(''); // Clear previous extracted text
+            setShowUploadPrompt(false);
         }
     };
 
@@ -74,6 +76,7 @@ export default function App() {
         if (!result.canceled) {
             setImage(result.assets ? result.assets[0].uri : result.uri);  // Update URI handling
             console.log('Image URI:', result.assets ? result.assets[0].uri : result.uri); // Log URI for debugging
+            setShowUploadPrompt(false);
         }
     };
 
@@ -232,21 +235,34 @@ export default function App() {
     };
 
     const toggleModal = () => {
+        if (isModalVisible && !image) {
+            // Show prompt if closing the modal without an uploaded image
+            setShowUploadPrompt(true);
+        } else {
+            // Hide prompt when opening the modal
+            setShowUploadPrompt(false);
+        }
         setModalVisible(!isModalVisible);
     };
 
     const handleOption1 = async () => {
         await takePhoto(); // Launch the camera
         toggleModal(); // Close the modal after taking the photo
+        setShowUploadPrompt(false);
     };
 
     const handleOption2 = async () => {
         await pickImage(); // Use the pickImage function to open the camera roll
         toggleModal(); // Close the modal after the image is picked
+        setShowUploadPrompt(false);
     };
     
     return (
         <View style={styles.container}>
+            {/* Welcome Text */}
+            <Text style={styles.headerText}>Welcome to Divvy!</Text>
+            <Text style={styles.headerText2}>Split your receipts with ease</Text>
+
             <Image
                 source={require('../assets/logo.jpeg')}
                 style={styles.backgroundImage}
@@ -262,6 +278,10 @@ export default function App() {
                         <Text style={styles.uploadButtonText}>Upload and Analyze</Text>
                     </TouchableOpacity>
                 )
+            )}
+
+            {showUploadPrompt && (
+                <Text style={styles.uploadPrompt}>Upload a picture to get started</Text>
             )}
                 
 
@@ -302,6 +322,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#b9c5ed',
+  },
+  headerText: {
+    position: 'absolute',
+    top: 150,
+    fontSize: 23,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    paddingHorizontal: 50,
+  },
+  headerText2: {
+    position: 'absolute',
+    top: 175,
+    fontSize: 23,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    paddingHorizontal: 30,
+  },
+  uploadPrompt: {
+    position: 'absolute',
+    bottom: 120,
+    color: '#666',
+    fontSize: 16,
+    textAlign: 'center',
   },
   scrollContent: {
     flexGrow: 1,               // Ensures the content grows with the ScrollView
