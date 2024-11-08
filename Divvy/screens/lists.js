@@ -3,6 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, TextInput, 
 import * as Contacts from 'expo-contacts';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 export default function DetailsScreen({ route, navigation }) {
   const { rawGeminiResult } = route.params || {};
@@ -278,9 +279,13 @@ export default function DetailsScreen({ route, navigation }) {
     <>
       <View style={styles.container}>
       <View style={styles.purpleSpace} />
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
-        <Ionicons name="arrow-back" size={24} color="black" />
-        </TouchableOpacity>
+      <View style={styles.headerContainer}>
+  <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+    <AntDesign name="left" size={20} color="black" />
+  </TouchableOpacity>
+  <Text style={styles.headerText}>Your items</Text>
+</View>
+
         <View style={styles.addContributorContainer}>
           <TextInput
             style={styles.input}
@@ -394,11 +399,22 @@ export default function DetailsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 55
+  },
   contactsDropdown: { marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 4 },
   contactText: { padding: 8, fontWeight: 'bold' },
   contactPhone: { paddingLeft: 8, paddingBottom: 8, color: 'gray' },
   editButton: {
-    backgroundColor: '#5B72C0',
+    backgroundColor: '#4F65B1',
     padding: 5,
     borderRadius: 5,
     marginTop: 5,

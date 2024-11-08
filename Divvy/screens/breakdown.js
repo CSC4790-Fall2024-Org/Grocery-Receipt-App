@@ -11,7 +11,7 @@ const currency = "$";  // Adding the currency constant
 const colors = {
   saleColor: 'red',
   yourCostColor: 'green',
-  backgroundColor: '#e1e8f3', //Purple background
+  backgroundColor: '#b9c5ed', //Purple background
   cardColor: '#fbfbfb',  //inside cards
   breakdownColor: '#faf9fb', //bottom breakdown tab
   highlightColor: '#d2edfd',
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   expandButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#4F65B1',
     padding: 6,
     marginRight: 10,  // Space between button and "Totals:"
     borderRadius: 50,
@@ -837,12 +837,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 5,
     paddingTop:  Platform.OS === 'ios' ? 27: 27, // Handle padding for different OS
     paddingBottom: 0,
-    backgroundColor: '#f0f0f0', // Light gray background
+    backgroundColor: '#b9c5ed', // Light gray background
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd', // Light gray border
+    borderBottomColor: '#b9c5ed', // Light gray border
     elevation: 5, //for shadow on the navigation bar
   },
   navButton: {
