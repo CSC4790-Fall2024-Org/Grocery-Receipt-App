@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button, TextInput, Modal } from 'react-native';
+import { View, Text, FlatList,  TouchableOpacity, StyleSheet, Button, TextInput, Modal } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -148,42 +148,21 @@ export default function DetailsScreen({ route, navigation }) {
     setModalVisible(true);
   };
 
-  const handleContributorSelect = (contributor) => {
-    setData((prevData) => {
-      const newData = [...prevData];
-      const item = newData[selectedItemIndex];
-      const adjustedPrice = item.price - item.discount;
-      const previousContributors = [...(item.selectedContributors || [])];
+  const handleContributorSelect = (itemIndex, contributor) => {
 
+    setData(prevData => {
+      const newData = [...prevData];
+      const item = newData[itemIndex];
       if (item.selectedContributors.includes(contributor)) {
         item.selectedContributors = item.selectedContributors.filter(c => c !== contributor);
       } else {
-        item.selectedContributors = [...item.selectedContributors, contributor];
+        item.selectedContributors.push(contributor);
       }
-
-      setContributorTotals((prevTotals) => {
-        const newTotals = { ...prevTotals };
-        previousContributors.forEach(c => {
-          newTotals[c] -= adjustedPrice / previousContributors.length;
-        });
-
-        if (item.selectedContributors.length > 0) {
-          const contributionPerPerson = adjustedPrice / item.selectedContributors.length;
-          item.selectedContributors.forEach(c => {
-            newTotals[c] = (newTotals[c] || 0) + contributionPerPerson;
-          });
-        }
-
-        Object.keys(newTotals).forEach(key => {
-          newTotals[key] = Math.max(0, Number(newTotals[key].toFixed(2)));
-        });
-
-        return newTotals;
-      });
-
       return newData;
     });
   };
+  
+  
   const handleSave = () => {
     const updatedData = [...data];
     // We don't need to update selectedContributors here as it's already part of the item
@@ -316,26 +295,48 @@ export default function DetailsScreen({ route, navigation }) {
           data={data}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({ item, index }) => (
-            <TouchableOpacity style={styles.row} onPress={() => handleRowPress(index)}>
-              <Text style={styles.itemText}>{item.itemName}</Text>
-              <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
-              <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
-              <Text style={styles.adjustedPriceText}>
-                Adjusted Price: ${(item.price - item.discount).toFixed(2)}
-              </Text>
-              {item.selectedContributors.length > 0 && (
-                <Text style={styles.contributorsText}>
-                  Contributors: {item.selectedContributors.join(', ')}
-                </Text>
-              )}
+            <View style={styles.card}>
+              <View style={styles.cardContent}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemText}>{item.itemName}</Text>
+                  <Text style={styles.priceText}>Price: ${item.price.toFixed(2)}</Text>
+                  <Text style={styles.discountText}>Discount: ${item.discount.toFixed(2)}</Text>
+                  <Text style={styles.adjustedPriceText}>
+                    Adjusted Price: ${(item.price - item.discount).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.contributorsContainer}>
+                  {contributors.map((contributor) => (
+                    <TouchableOpacity
+                      key={contributor}
+                      style={[
+                        styles.contributorButton,
+                        item.selectedContributors.includes(contributor) && styles.selectedContributor
+                      ]}
+                      onPress={() => handleContributorSelect(index, contributor)}
+                      activeOpacity = {0.2}
+                      delayPressIn={0}
+                    >
+                      <Text style={[
+                        styles.contributorText,
+                        item.selectedContributors.includes(contributor) && styles.selectedContributorText
+                      ]}>
+                        {contributor}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
               <TouchableOpacity 
                 style={styles.editButton} 
                 onPress={() => setEditingItemIndex(index)}
               >
-                <Text style={styles.editButtonText}>Edit</Text>
+                <Text style={styles.editButtonText}>Edit Price</Text>
               </TouchableOpacity>
-            </TouchableOpacity>
+            </View>
           )}
+          
+          
           
           contentContainerStyle={{ paddingBottom: 20 }}
         />
@@ -409,6 +410,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginLeft: 55
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  contributorButton: {
+    padding: 5,
+    marginVertical: 2,
+    borderRadius: 5,
+    backgroundColor: '#e0e0e0',
+  },
+  selectedContributor: {
+    backgroundColor: '#4F65B1',
+  },
+  contributorText: {
+    fontSize: 12,
+    color: '#000',
   },
   contactsDropdown: { marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 4 },
   contactText: { padding: 8, fontWeight: 'bold' },
@@ -484,6 +501,49 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     backgroundColor: '#b9c5ed', // Purplish background
   },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  itemText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  priceText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  discountText: {
+    fontSize: 14,
+    color: '#4CAF50',
+  },
+  adjustedPriceText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  contributorsContainer: {
+    flexDirection: 'column',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+
+  selectedContributorText: {
+    color: '#fff',
+  },
   row: {
     backgroundColor: '#fff', // White cards
     padding: 10, // Adjust padding to make box smaller
@@ -497,6 +557,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5, // For Android shadow
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   itemText: {
     fontSize: 18,
