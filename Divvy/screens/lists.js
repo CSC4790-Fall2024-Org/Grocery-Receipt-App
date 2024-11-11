@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList,  TouchableOpacity, StyleSheet, Button, TextInput, Modal } from 'react-native';
+import { View, Text, FlatList,  TouchableOpacity, StyleSheet, Button, TextInput, Modal, Alert } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -95,6 +95,32 @@ export default function DetailsScreen({ route, navigation }) {
       setNewContributor('');
       setFilteredContacts([]);
     }
+  };
+  const deleteContributor = (contributorToDelete) => {
+    // Remove contributor from all states
+    setContributors(prev => prev.filter(contributor => contributor !== contributorToDelete));
+    
+    // Remove contributor from phones
+    setContributorPhones(prev => {
+      const updated = { ...prev };
+      delete updated[contributorToDelete];
+      return updated;
+    });
+    
+    // Remove contributor from totals
+    setContributorTotals(prev => {
+      const updated = { ...prev };
+      delete updated[contributorToDelete];
+      return updated;
+    });
+    
+    // Remove contributor from all items' selectedContributors
+    setData(prev => prev.map(item => ({
+      ...item,
+      selectedContributors: item.selectedContributors.filter(
+        contributor => contributor !== contributorToDelete
+      )
+    })));
   };
   const handleSaveEdit = (newPrice, newDiscount) => {
     const updatedData = [...data];
@@ -380,17 +406,26 @@ export default function DetailsScreen({ route, navigation }) {
 
       <View style={styles.totalsContainer}>
         <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-        <FlatList
-          data={contributors}
-          horizontal={true}
-          keyExtractor={(contributor) => contributor}
-          renderItem={({ item }) => (
-            <Text style={styles.totalText}>
-              {item}: ${contributorTotals[item] ? contributorTotals[item].toFixed(2) : 0}
+        {contributors.map((contributor) => (
+        <View key={contributor} style={styles.contributorRow}>
+          <Text style={styles.contributorName}>{contributor}</Text>
+          <View style={styles.rightContainer}>
+            <Text style={styles.contributorTotal}>
+              ${(contributorTotals[contributor] || 0).toFixed(2)}
             </Text>
-          )}
-          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
-        />
+            <TouchableOpacity 
+              onPress={() => deleteContributor(contributor)}
+              style={styles.deleteButton}
+            >
+              <AntDesign name="close" size={20} color="red" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+
+
+
+
         <TouchableOpacity onPress={handleViewSummary}>
           <Text style={styles.summButton}>View Summary</Text>
         </TouchableOpacity>
@@ -400,6 +435,28 @@ export default function DetailsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  contributorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  contributorName: {
+    fontSize: 16,
+    flex: 1, // This will allow the name to take up available space
+  },
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10, // Adds space between the amount and X button
+  },
+  contributorTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  deleteButton: {
+    padding: 2,
+  },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',

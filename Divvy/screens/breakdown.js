@@ -318,7 +318,7 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
       <View style={styles.innerContainer}>
         <View style={styles.headerContainer}>
           <View style={styles.userNameContainer}>
-            <Text style={styles.userNameText}>{data.userName}{data.phoneNumber}</Text>
+            <Text style={styles.userNameText}>{data.userName}</Text>
           </View>
           <View style={styles.yourCostHeaderContainer}>
             <Text style={styles.headerText}>Owed</Text>
