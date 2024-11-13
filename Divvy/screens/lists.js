@@ -86,16 +86,50 @@ export default function DetailsScreen({ route, navigation }) {
 
   const addContributor = (name, phoneNumber) => {
     if (name.trim()) {
-      // Only normalize if phoneNumber is defined
-      const normalizedNumber = phoneNumber ? normalizePhoneNumber(phoneNumber) : '';
-  
-      setContributors((prev) => [...prev, name]);
-      setContributorPhones((prev) => ({ ...prev, [name]: normalizedNumber }));
-      setContributorTotals((prev) => ({ ...prev, [name]: 0 }));
-      setNewContributor('');
-      setFilteredContacts([]);
+      // If phoneNumber is not provided (not from contacts), show prompt
+      if (!phoneNumber) {
+        Alert.prompt(
+          "Add Phone Number",
+          `Please enter a phone number for ${name}`,
+          [
+            {
+              text: "Cancel",
+              style: "cancel"
+            },
+            {
+              text: "Add",
+              onPress: (inputPhoneNumber) => {
+                if (inputPhoneNumber && inputPhoneNumber.trim()) {
+                  const normalizedNumber = normalizePhoneNumber(inputPhoneNumber);
+                  setContributors((prev) => [...prev, name]);
+                  setContributorPhones((prev) => ({ ...prev, [name]: normalizedNumber }));
+                  setContributorTotals((prev) => ({ ...prev, [name]: 0 }));
+                  setNewContributor('');
+                  setFilteredContacts([]);
+                } else {
+                  // If no phone number provided, show an alert
+                  Alert.alert(
+                    "Invalid Phone Number",
+                    "Please enter a valid phone number to add a contributor",
+                    [{ text: "OK" }]
+                  );
+                }
+              }
+            }
+          ],
+          'plain-text'
+        );
+      } else {
+        // Original flow for contacts with phone numbers
+        const normalizedNumber = normalizePhoneNumber(phoneNumber);
+        setContributors((prev) => [...prev, name]);
+        setContributorPhones((prev) => ({ ...prev, [name]: normalizedNumber }));
+        setNewContributor('');
+        setFilteredContacts([]);
+      }
     }
   };
+  
   const deleteContributor = (contributorToDelete) => {
     // Remove contributor from all states
     setContributors(prev => prev.filter(contributor => contributor !== contributorToDelete));
