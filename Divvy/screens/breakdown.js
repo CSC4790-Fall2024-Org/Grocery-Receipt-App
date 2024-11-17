@@ -240,9 +240,7 @@ const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBotto
       };
     });
  
-//   totalSubtotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.subtotal), 0).toFixed(2);
-//   totalTotal = totalsByUser.reduce((sum, user) => sum + parseFloat(user.total), 0).toFixed(2);
-  // console.log("totalsByUser:", totalsByUser);
+
   return (
     <View style={[styles.bottomBarContainer, isBottomBarExpanded && styles.expandedBottomBar]}>
       <View style={styles.buttonContainer}>
