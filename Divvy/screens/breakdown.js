@@ -1,53 +1,104 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Platform, LayoutAnimation,  UIManager, Image  } from 'react-native';
+import React, { useState, useRef, useEffect} from 'react';
+import { View, Text, FlatList, StyleSheet, ScrollView, Dimensions, 
+         TouchableOpacity, Platform, LayoutAnimation, UIManager, 
+        Image, Modal, Linking, TextInput, Keyboard } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 import AntDesign from '@expo/vector-icons/AntDesign'; // Import AntDesign
 import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
-import { useNavigation, useRoute } from '@react-navigation/native';
- 
+import { useNavigation } from '@react-navigation/native'; // If using React Navigation
+// import { NavigationContainer } from '@react-navigation/native'; 
+import * as SMS from 'expo-sms';
+
 // Fixed list of names
-const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden'];
+const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden', 'William', 'Daniel', 'Sara', 'Alex', 'Mike'];
 const currency = "$";  // Adding the currency constant
- 
+
 const colors = {
   saleColor: 'red',
   yourCostColor: 'green',
-  backgroundColor: '#b9c5ed', //Purple background
-  cardColor: '#fbfbfb',  //inside cards
+  backgroundColorBehindCard: '#b9c5ed', //Purple background old is #e1e8f3
+  cardColor: '#fbfbfb',  //inside cards 
   breakdownColor: '#faf9fb', //bottom breakdown tab
   highlightColor: '#d2edfd',
   taxColor: '#f19508',
-  finalTotalColor: '#5289ef',
+  finalTotalColor: '#5289ef', 
   fadedHighlightColor: 'rgba(210, 237, 253, 0.3)',
 };
- 
+
 const fonts = {
   itemFont: Platform.OS === 'ios' ? 'System' : 'sans-serif', // 'System' is San Francisco on iOS
 };
- 
+
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
 }
- 
+
 const calculateYourCost = (storePrice, sale, split) => {
   const costAfterSale = parseFloat(storePrice) - parseFloat(sale);
   const yourCost = costAfterSale / split.length;
   return yourCost.toFixed(2); // Return as string with 2 decimal places
 };
- 
+
+const calculateNetPrice = (storePrice, sale) => {
+  const costAfterSale = parseFloat(storePrice) - parseFloat(sale);
+  return costAfterSale.toFixed(2);
+};
+
 const DATA1 = [
-  {
-    userName: 'Something Broke',
-    phoneNumber: '000-000-0000',
-    items: [
-      { itemName: 'Garden Salsa Chips', storePrice: '120.00', split: [names[0], names[1]], sale: '100.00' },
-      { itemName: 'Nerds Gummy Clusters', storePrice: '3.00', split: [names[2]], sale: '0.50' },
-      { itemName: 'Snickerdoodle Cookies', storePrice: '12.00', split: [names[3], names[4]], sale: '0.20' },
-      { itemName: 'Peanut Butter Cookies', storePrice: '5.00', split: [names[4]], sale: '0.30' },
-      { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[2], names[0], names[0], names[0], names[0]], sale: '1.50' }
-    ],
-},
+//   {
+//     userName: 'Self',
+//     phoneNumber: '9735580705',
+//     items: [
+//       { itemName: 'Current Device Item1', storePrice: '100.00', split: [names[0], names[1]], sale: '0.00' },
+//       { itemName: 'Current Device Item2', storePrice: '3.00', split: [names[2]], sale: '0.50' },
+//       { itemName: 'Current Device Item3', storePrice: '12.00', split: [names[3], names[4]], sale: '0.20' },
+//       { itemName: 'Current Device Item4', storePrice: '5.00', split: [names[5]], sale: '0.30' },
+//       { itemName: 'Current Device Item5', storePrice: '10.00', split: [names[6], names[0], names[0], names[0], names[0]], sale: '1.50' }
+//     ],
+// },
+//   {
+//     userName: 'Luke',
+//     phoneNumber: '2034441066',
+//     items: [
+//       { itemName: 'Garden Salsa Chip Dip', storePrice: '100.00', split: [names[0], names[1]], sale: '0.00' },
+//       { itemName: 'Nerds Gummy Clusters', storePrice: '3.00', split: [names[2]], sale: '0.50' },
+//       { itemName: 'Snickerdoodle Cookies', storePrice: '12.00', split: [names[3], names[4]], sale: '0.20' },
+//       { itemName: 'Peanut Butter Cookies', storePrice: '5.00', split: [names[5]], sale: '0.30' },
+//       { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[6], names[0], names[0], names[0], names[0]], sale: '1.50' }
+//     ],
+// },
+// {
+//   userName: 'Charlie',  // New user
+//   phoneNumber: '9048641301',
+//   items: [
+//     { itemName: '2% Milk', storePrice: '5.00', split: [names[1], names[2]], sale: '1.00' },
+//     { itemName: 'Non-Pasturized Milk', storePrice: '4.00', split: [names[3]], sale: '0.75' },
+//     { itemName: 'Goat Milk', storePrice: '3.00', split: [names[3]], sale: '0.55' },
+//     { itemName: 'Sheep Milk', storePrice: '2.00', split: [names[3]], sale: '0.25' },
+//   ],
+// },
+// {
+//   userName: 'Joey',  // New user
+//   phoneNumber: '020-000-0000',
+//   items: [
+//     { itemName: 'Dairy-Free Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '0.00' },
+//     { itemName: 'Gluten-Free Bread', storePrice: '4.00', split: [names[3]], sale: '0.75' },
+//     { itemName: 'DF & GF Bars', storePrice: '18.00', split: [names[3]], sale: '0.55' },
+//     { itemName: 'White Rice', storePrice: '40.00', split: [names[3]], sale: '0.25' },
+//   ],
+// },
+// {
+// userName: 'Daniel',  // New user
+// phoneNumber: '2037527960',
+//   items: [
+//     { itemName: 'Shredded Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '1.00' },
+//     { itemName: '3x Chicken Cutlets', storePrice: '20.00', split: [names[3]], sale: '0.75' },
+//     { itemName: 'Liquid Egg Whites', storePrice: '18.00', split: [names[3]], sale: '0.55' },
+//     { itemName: 'Gummy Glumper', storePrice: '14.00', split: [names[3]], sale: '0.25' },
+//   ],
+// },
 ];
  
 // const TAX = 4.50;
@@ -74,31 +125,36 @@ const getSplitDisplayNames = (split) => {
   return split.map(name => name.substring(0, 2).toUpperCase());
 };
  
-const Row = ({ itemName, storePrice, split, sale, isSelected, userName, toggleSelect, currency, phoneNumber }) => {
+const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected,  userName, toggleSelect, currency }) => {
   const [expandedField, setExpandedField] = useState(null);
   const [splitHeight, setSplitHeight] = useState(0);
- 
+
   const handleSplitLayout = (event) => {
     const { height } = event.nativeEvent.layout;
     setSplitHeight(height);
   };
- 
+
     // Update toggleFieldExpansion to accept userName
     const toggleFieldExpansion = (fieldName) => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
- 
+  
       if (expandedField !== null && expandedField !== fieldName) {
         setExpandedField(null);
       }
- 
+  
       setExpandedField(fieldName === expandedField ? null : fieldName);
- 
+  
       // Call toggleSelect with userName
       toggleSelect(itemName, userName);  // Pass userName here
     };
- 
+
   const yourCost = calculateYourCost(storePrice, sale, split);
- 
+  const netPrice = calculateNetPrice(storePrice, sale);
+
+  const toggleNetPrice = () => {
+    setNetPriceIsSelected(prev => !prev);
+  };
+
   return (
     <View style={styles.row}>
       {isSelected && (
@@ -109,72 +165,119 @@ const Row = ({ itemName, storePrice, split, sale, isSelected, userName, toggleSe
           end={{ x: 0.5, y: 1 }}
         />
       )}
-      <View style={styles.leftContainerV2}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-           <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
-            <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
-              <Text style={styles.bulletPoint}>•</Text> {itemName}
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-      <View style={styles.rightContainerV2}>
-      <TouchableOpacity onPress={() => toggleFieldExpansion('yourCost')} style={styles.touchableContainer}>
-          <View style={[
-            styles.yourCostContainer,
-            { height: expandedField === 'yourCost' ? splitHeight :  undefined},  // Apply splitHeight first
-            expandedField === 'yourCost' && styles.expandedDataContainer // Apply expansion style if expanded
-          ]}>
-            <Text style={[styles.yourCostText, isSelected && styles.boldText]}>{currency}{yourCost}</Text>
-          </View>
-        </TouchableOpacity>
- 
-        <TouchableOpacity onPress={() => toggleFieldExpansion('split')} style={styles.touchableContainer}>
-          <View style={[
-            styles.splitContainer,
-            { height: expandedField === 'split' ? splitHeight :  undefined},
-            expandedField === 'split' && styles.expandedDataContainer
-          ]}>
-            <Text
-              style={[styles.splitText, isSelected && styles.boldText]}
-              onLayout={handleSplitLayout}
-            >
-              {getSplitDisplayNames(split).join(', ')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => toggleFieldExpansion('sale')}style={styles.touchableContainer}>
-                <View style={[
-        styles.saleContainer,
-        { height: expandedField === 'sale' ? splitHeight : 15 },
-        expandedField === 'sale' && styles.expandedDataContainer
-        ]}>
-        <Text style={[styles.saleText, isSelected && styles.boldText]}>
-        {parseFloat(sale) > 0 ? `-${(parseFloat(sale)).toFixed(2)}` : `0.00`}
+      <View style={netPriceIsSelected ? styles.leftContainerV2 : styles.adjustedWidthContainer}>
+  {netPriceIsSelected ? (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
+        <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
+          <Text style={styles.bulletPoint}>•</Text> {itemName}
         </Text>
-        </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => toggleFieldExpansion('storePrice')} style={styles.touchableContainer}>
-          <View style={[
-            styles.storePriceContainer,
-            { height: expandedField === 'storePrice' ? splitHeight :  15 },
-            expandedField === 'storePrice' && styles.expandedDataContainer
-          ]}>
-            <Text style={[styles.storePriceText, isSelected && styles.boldText]}>{currency}{storePrice}</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
+    </ScrollView>
+  ) : (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
+        <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
+          <Text style={styles.bulletPoint}>•</Text> {itemName}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
+  )}
+</View>
+  <View style={styles.rightContainerV2}>
+      {netPriceIsSelected ? (
+        // Default layout: Net Price, Your Cost, and Split
+        <>
+         <TouchableOpacity onPress={() => toggleFieldExpansion('storePrice')} style={styles.touchableContainer}>
+            <View style={[
+              styles.storePriceContainer,
+              { height: expandedField === 'storePrice' ? splitHeight : 15 },
+              expandedField === 'storePrice' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.storePriceText, isSelected && styles.boldText]}>{currency}{storePrice}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => toggleFieldExpansion('sale')} style={styles.touchableContainer}>
+            <View style={[
+              styles.saleContainer,
+              { height: expandedField === 'sale' ? splitHeight : 15 },
+              expandedField === 'sale' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.saleText, isSelected && styles.boldText]}>
+                {parseFloat(sale) > 0 ? `-${parseFloat(sale).toFixed(2)}` : `0.00`}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => toggleFieldExpansion('split')} style={styles.touchableContainer}>
+            <View style={[
+              styles.splitContainer,
+              { height: expandedField === 'split' ? splitHeight : undefined },
+              expandedField === 'split' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.splitText, isSelected && styles.boldText]} onLayout={handleSplitLayout}>
+                {getSplitDisplayNames(split).join(', ')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+         <TouchableOpacity onPress={toggleNetPrice} style={styles.touchableContainer}>
+            <View style={[
+              styles.yourCostContainer,
+              { height: expandedField === 'yourCost' ? splitHeight : undefined },
+              expandedField === 'yourCost' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.yourCostText, isSelected && styles.boldText]}>{currency}{yourCost}</Text>
+            </View>
+          </TouchableOpacity>
+        </>
+      ) : (
+        // Alternate layout: Your Cost, Split, Sale, and Retail
+        <>
+          <TouchableOpacity onPress={toggleNetPrice} style={styles.touchableContainer}>
+            <View style={[
+              styles.netPriceContainer,
+              { height: expandedField === 'netPrice' ? splitHeight : undefined },
+              expandedField === 'netPrice' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.netPriceText, isSelected && styles.boldText]}>{currency}{netPrice}</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => toggleFieldExpansion('split')} style={styles.touchableContainer}>
+            <View style={[
+              styles.splitContainerAdjusted,
+              { height: expandedField === 'split' ? splitHeight : undefined },
+              expandedField === 'split' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.splitText, isSelected && styles.boldText]} onLayout={handleSplitLayout}>
+                {getSplitDisplayNames(split).join(', ')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => toggleFieldExpansion('yourCost')} style={styles.touchableContainer}>
+            <View style={[
+              styles.yourCostContainerAdjusted,
+              { height: expandedField === 'yourCost' ? splitHeight : undefined },
+              expandedField === 'yourCost' && styles.expandedDataContainer
+            ]}>
+              <Text style={[styles.yourCostText, isSelected && styles.boldText]}>{currency}{yourCost}</Text>
+            </View>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
     </View>
   );
 };
  
-const BreakdownRow = ({ data, isExpanded, toggleShowMore }) => {
- 
+const BreakdownRow = ({ data, isExpanded, toggleShowMore, netPriceIsSelected }) => {
+
   const totalYourCost = data.items.reduce((sum, item) => {
     const itemCost = parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
     return sum + itemCost;
   }, 0).toFixed(2);
- 
+
 return (
   <View style={styles.row}>
     <View style={{
@@ -183,19 +286,19 @@ return (
       paddingVertical: 0,
     }}>
       <View style={styles.buttonContainerInBreakdown}>
-      <TouchableOpacity style={[styles.expandButton, { width: 60 }]} onPress={toggleShowMore}>
-        <AntDesign name={isExpanded ? 'up' : 'down'} size={15} color="white" />
+      <TouchableOpacity style={[styles.expandButton, { width: 60 }]} onPress={toggleShowMore} activeOpacity={1}> 
+        <AntDesign name={isExpanded ? 'up' : 'down'} size={15} color="white" /> 
         </TouchableOpacity>
       </View>
-      <View style={styles.breakdownTotalContainer}>
+      {netPriceIsSelected ? (
+         <>
+      <View style={styles.breakdownTotalContainer}> 
         <Text style={styles.breakdownTotalText}>Totals:</Text>
       </View>
-    </View>
- 
     <View style={styles.rightContainer}>
-      <View style={styles.breakdownCostContainer}>
-        <Text style={styles.breakdownCostText}>
-          {currency}{totalYourCost}
+    <View style={styles.breakdownStoreContainer}>
+        <Text style={styles.breakdownStoreText}>
+          {currency}{getCategoryTotal(data, 'storePrice')}
         </Text>
       </View>
       <View style={styles.breakdownSaleContainer}>
@@ -203,43 +306,61 @@ return (
          {'-'}{currency}{getCategoryTotal(data, 'sale')}
         </Text>
       </View>
-      <View style={styles.breakdownStoreContainer}>
-        <Text style={styles.breakdownStoreText}>
-          {currency}{getCategoryTotal(data, 'storePrice')}
+      <View style={styles.breakdownCostContainer}>
+        <Text style={styles.breakdownCostText}>
+          {currency}{totalYourCost} 
         </Text>
       </View>
+      </View>
+      </>
+      ) : (
+      <>
+      <View style={styles.breakdownTotalContainer}> 
+        <Text style={styles.breakdownTotalText}>Total Balance:</Text>
+      </View>
+      <View style={styles.breakdownCostContainerAdjusted}>
+        <Text style={styles.breakdownCostText}>
+          {currency}{totalYourCost} 
+        </Text>
+      </View>
+      </>
+      )}
     </View>
   </View>
   );
 };
  
-const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBottomBar }) => {
-    const numUsers = data.length;
-  
-    // Use receiptEndVariables for totals
-    const totalTax = parseFloat(receiptEndVariables.tax) || 0; 
-    const totalSubtotal = parseFloat(receiptEndVariables.subtotal) || 0;
-    const totalTotal = parseFloat(receiptEndVariables.total) || 0;
-  
-  
-    const taxPerPerson = numUsers > 0 ? (totalTax / numUsers).toFixed(2) : 0;
-  
-    // Calculate individual user totals (you might adjust this based on your exact split logic)
-    const totalsByUser = data.map(user => {
-      const userSubtotal = user.items.reduce((sum, item) => {
-        return sum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
-      }, 0);
-  
-      const userTax = parseFloat(taxPerPerson); 
-      const userTotal = userSubtotal + userTax;
-  
-      return {
-        userName: user.userName,
-        subtotal: userSubtotal.toFixed(2),
-        total: userTotal.toFixed(2),
-      };
-    });
- 
+const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax}) => {
+  const [proportionalTax, setProportionalTax] = useState(false);
+  const numUsers = data.length;
+  const totalTax = tax;
+  const totalSubtotal = data.reduce((sum, user) => sum + user.items.reduce((itemSum, item) => itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)), 0), 0).toFixed(2);
+
+  const calculateUserTax = (userSubtotal) => {
+    if (proportionalTax) {
+      return (parseFloat(userSubtotal) / parseFloat(totalSubtotal)) * totalTax;
+    } else {
+      return numUsers > 0 ? (totalTax / numUsers) : 0;
+    }
+  };
+
+  const totalsByUser = data.map(user => {
+    const userSubtotal = user.items.reduce((sum, item) => {
+      return sum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
+    }, 0);
+
+    const userTax = calculateUserTax(userSubtotal);
+
+    return {
+      userName: user.userName,
+      subtotal: userSubtotal,
+      tax: parseFloat(userTax.toFixed(2)), // Store tax separately
+      total: userSubtotal + parseFloat(userTax.toFixed(2)),
+    };
+  });
+
+  const totalTotal = proportionalTax ? (parseFloat(totalSubtotal) + totalTax).toFixed(2) : totalsByUser.reduce((sum, user) => sum + parseFloat(user.total), 0).toFixed(2);
+  // console.log("totalsByUser:", totalsByUser);
 
   return (
     <View style={[styles.bottomBarContainer, isBottomBarExpanded && styles.expandedBottomBar]}>
@@ -250,12 +371,17 @@ const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBotto
           <AntDesign name={isBottomBarExpanded ? 'down' : 'up'} size={16} color="white" />
         </TouchableOpacity>
       </View>
- 
+
       {isBottomBarExpanded && (
          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={[styles.bottomBarContent, {minWidth: Dimensions.get('window').width * (0.26 * numUsers)}]}>
           <View style={styles.headerRow}>
-            <View style={styles.emptyHeaderCell} />
+          <TouchableOpacity
+                onPress={() => setProportionalTax(!proportionalTax)}
+                style={[styles.proportionalTaxButton, proportionalTax && styles.proportionalTaxButtonActive]}
+              >
+                <Text style={styles.proportionalTaxButtonText}>{proportionalTax ? 'Relative Tax' : 'Fixed Tax'}</Text>
+              </TouchableOpacity>
             <View style={styles.allHeaderCell}><Text style={styles.headerTextBottomBar}>All</Text></View>
             {totalsByUser.map(user => (
               <View key={user.userName} style={styles.userHeaderCell}>
@@ -269,29 +395,29 @@ const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBotto
               <View style={styles.categoryLabelCell}>  
                 <Text style={styles.categoryText}>Subtotal:</Text>
               </View>
-              <Text style={[styles.allDataText, { color: colors.yourCostColor }]}>{currency}{totalSubtotal}</Text>
+              <Text style={[styles.allDataText, { color: colors.yourCostColor }]}>{currency}{parseFloat(totalSubtotal).toFixed(2)}</Text>
               {totalsByUser.map(user => (
-                <Text key={user.userName} style={[styles.userDataText, { color: colors.yourCostColor }]}>{currency}{user.subtotal}</Text>
+                <Text key={user.userName} style={[styles.userDataText, { color: colors.yourCostColor }]}>{currency}{user.subtotal.toFixed(2)}</Text>
               ))}
             </View>
-         
+          
             <View style={styles.dataRow}>
               <View style={styles.categoryLabelCell}>
                 <Text style={styles.categoryText}>Tax:</Text>
+                </View>
+                <Text style={[styles.allDataText, { color: colors.taxColor }]}>{currency}{totalTax.toFixed(2)}</Text>
+                {totalsByUser.map(user => (
+                  <Text key={user.userName} style={[styles.userDataText, { color: colors.taxColor }]}>{currency}{user.tax}</Text>
+                ))}
               </View>
-              <Text style={[styles.allDataText, {color: colors.taxColor}]}>{currency}{totalTax}</Text>
-              {data.map(user => (
-                <Text key={user.userName} style={[styles.userDataText, {color: colors.taxColor}]}>{currency}{taxPerPerson}</Text>
-              ))}
-            </View>
-           
+            
             <View style={styles.dataRow}>
               <View style={styles.categoryLabelCell}>
                 <Text style={styles.categoryText}>Total:</Text>
               </View>
               <Text style={[styles.allDataText, {color: colors.finalTotalColor, fontWeight: 'bold', fontSize: 16}]}>{currency}{totalTotal}</Text>
               {totalsByUser.map(user => (
-                <Text key={user.userName} style={[styles.userDataText, {color: colors.finalTotalColor, fontWeight: 'bold', fontSize: 16}]}>{currency}{user.total}</Text>
+                <Text key={user.userName} style={[styles.userDataText, {color: colors.finalTotalColor, fontWeight: 'bold', fontSize: 16}]}>{currency}{user.total.toFixed(2)}</Text>
               ))}
             </View>
           </View>
@@ -304,34 +430,63 @@ const BottomBar = ({ data, receiptEndVariables, isBottomBarExpanded, toggleBotto
  
 const Container = ({ data, selectedItem, toggleSelectItem }) => {
   const [expanded, setExpanded] = useState(false);
- 
+  const [netPriceIsSelected, setNetPriceIsSelected] = useState(false); // Add netPriceIsSelected state
   // Toggle show more/less
   const toggleShowMore = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); // <-- LayoutAnimation here
     setExpanded(prev => !prev);
   };
- 
+
+   // Toggle netPriceIsSelected
+   const toggleNetPrice = () => {
+    setNetPriceIsSelected(prev => !prev);
+  };
+
+    // Reset to Net Price, Split, and Owed when Sale or Retail is clicked
+    const resetToDefault = () => {
+      setNetPriceIsSelected(prev => !prev);
+    };
+
   return (
-   
+
       <View style={styles.innerContainer}>
         <View style={styles.headerContainer}>
           <View style={styles.userNameContainer}>
             <Text style={styles.userNameText}>{data.userName}</Text>
           </View>
-          <View style={styles.yourCostHeaderContainer}>
-            <Text style={styles.headerText}>Owed</Text>
-          </View>
-          <View style={styles.splitHeaderContainer}>
-            <Text style={styles.headerText}>Split</Text>
-          </View>
-          <View style={styles.saleHeaderContainer}>
-            <Text style={styles.headerText}>Sale</Text>
-          </View>
-          <View style={styles.storePriceHeaderContainer}>
-            <Text style={styles.headerText}>Retail</Text>
-          </View>
+  
+          {netPriceIsSelected ? (
+            // Default layout: Show Net Price, Split, and Owed
+            <>
+              <TouchableOpacity onPress={resetToDefault} style={styles.storePriceHeaderContainer}>
+                <Text style={[styles.headerText, styles.clickableText]}>Retail</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={resetToDefault} style={styles.saleHeaderContainer}>
+                <Text style={[styles.headerText, styles.clickableText]}>Sale</Text>
+              </TouchableOpacity>
+              <View style={styles.splitHeaderContainer}>
+                <Text style={styles.headerText}>Split</Text>
+              </View>
+             <View style={styles.yourCostHeaderContainer}>
+                <Text style={styles.headerText}>Owed</Text>
+              </View>
+            </>
+          ) : (
+            // Alternate layout: Show Sale and Retail, which can reset back to default on click
+            <>
+             <TouchableOpacity onPress={toggleNetPrice} style={styles.netPriceHeaderContainer}>
+                <Text style={[styles.clickableText, styles.headerText, netPriceIsSelected && styles.selectedText]}>Net Price</Text>
+              </TouchableOpacity>
+              <View style={styles.splitHeaderContainerAdjusted}>
+                <Text style={styles.headerText}>Split</Text>
+              </View>
+              <View style={styles.yourCostHeaderContainerAdjusted}>
+                <Text style={styles.headerText}>Owed</Text>
+              </View>
+            </>
+          )}
         </View>
- 
+
          {/* Display data rows */}
          {data.items.slice(0, expanded ? data.items.length : 3).map((item, index) => (
           <Row
@@ -340,78 +495,452 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
             storePrice={item.storePrice}
             // yourCost={item.yourCost}
             split={item.split}
-            sale={item.sale}
+            sale={item.sale === undefined ? 0.00 : item.sale}
             isSelected={selectedItem === item.itemName} // Pass selectedItem state
             toggleSelect={toggleSelectItem} // Pass toggleSelectItem function
+            netPriceIsSelected={netPriceIsSelected}
           />
         ))}
- 
+
         {/* Horizontal line above BreakdownRow */}
         <View style={styles.horizontalLine} />
- 
+
         {/* Display Breakdown row with calculated values */}
-        <BreakdownRow data={data} isExpanded={expanded} toggleShowMore={toggleShowMore} />
+        <BreakdownRow data={data} isExpanded={expanded} toggleShowMore={toggleShowMore} netPriceIsSelected={netPriceIsSelected}/>
       </View>
-   
+    
   );
 };
  
-const NavigationBar = ({ title, navigation}) => {
- 
+const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMessageButton, setModalVisible, setSelectedOption, DATA1, setData1, currency, tax }) => {
+  const [dropdownVisible, setDropdownVisible] = React.useState(false);
+  const [contactMethod, setContactMethod] = useState(null);
+  const [venmoUsernameInput, setVenmoUsernameInput] = useState('');
+  const [venmoUsername, setVenmoUsername] = useState(''); // Use state for venmoUsername
+
+  const navigation = useNavigation();
+  // const venmoUsername = 'Change-This-Username'; // Your Venmo username
+
+  useEffect(() => {
+    if (selectedOption) {
+        const selectedUser = DATA1.find(user => user.phoneNumber === selectedOption);
+        if (selectedUser) {
+            if (contactMethod === 'phone') {
+                setVenmoUsername(selectedUser.phoneNumber);
+            } else if (contactMethod === 'venmo') {
+                setVenmoUsername(venmoUsernameInput); // Use input for Venmo
+            }
+        }
+    // } else if (!selectedOption || selectedOption === 'Self') {
+    //     // Reset or set to "Self"
+    //     if (contactMethod === 'venmo') {
+    //         setVenmoUsername(venmoUsernameInput);
+    //     } else {
+    //         setVenmoUsername('');
+    //     }
+    }
+
+}, [selectedOption, contactMethod, venmoUsernameInput, DATA1]);
+
+  // Function to go back
   const handleGoBack = () => {
-    //console.log("Go Backward pressed!");
+    console.log("Go Backward pressed!");
     navigation.goBack();
   };
- 
-  const handleGoForward = () => {
-    //console.log("Go Forward pressed!");
+
+  // Example of calculateOwedAmount function
+  const calculateOwedAmount = (userName, data = DATA1, tax1 = tax) => {
+    const user = data.find(u => u.userName === userName);
+    if (!user) {
+        console.error("User not found:", userName);
+        return 0;
+    }
+
+    const totalSubtotal = data.reduce((sum, user) =>
+        sum + user.items.reduce((itemSum, item) =>
+            itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)),
+            0
+        ), 0);
+
+    console.log('Total Subtotal:', totalSubtotal);
+
+    const userSubtotal = user.items.reduce((sum, item) => {
+        const cost = parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
+        console.log('Item cost:', item.itemName, cost);
+        return sum + cost;
+    }, 0);
+
+    
+    // Calculate tax proportion
+    const userTax = (userSubtotal / totalSubtotal) * tax;
+
+    // console.log('User Subtotal:', userSubtotal);
+    // console.log('Tax:', tax1);
+
+    // console.log('User Tax:', userTax);
+
+    return (userSubtotal + userTax).toFixed(2);
+};
+
+  const createVenmoLink = (amount, note) => {
+    return `venmo://paycharge?txn=pay&recipients=${venmoUsername}&amount=${amount}&note=${encodeURIComponent(note)}`;
   };
- 
-  const VenmoLogo = require('../assets/Venmo_Logo.png');
- 
-  const VenmoLogoComponent = <Image source={VenmoLogo} style={styles.venmoLogo} resizeMode="contain"/>;
- 
+
+
+  const sendIndividualMessage = async (user) => {
+    const owedAmount = calculateOwedAmount(user.userName);
+    const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
+    const message = `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}`;
+
+    const isAvailable = await SMS.isAvailableAsync();
+    if (isAvailable) {
+      await SMS.sendSMSAsync([user.phoneNumber], message);
+    } else {
+      alert('SMS not available. Opening Venmo directly...');
+      Linking.openURL(venmoLink);
+    }
+      setModalVisible(false);
+  };
+
+  const sendGroupMessage = async () => {
+    let combinedMessage = '';
+
+    for (const user of DATA1) {
+      const owedAmount = calculateOwedAmount(user.userName);
+      const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
+      combinedMessage += `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}\n\n`;
+    }
+
+    const isAvailable = await SMS.isAvailableAsync();
+    if (isAvailable) {
+      await SMS.sendSMSAsync(DATA1.map(user => user.phoneNumber), combinedMessage);  // Send to multiple numbers
+    } else {
+      alert('SMS not available');
+      // Handle what to do if SMS isn't available, maybe open a single Venmo link?
+    }
+    setModalVisible(false);
+  };
+  // Load Venmo icon
+  const VenmoIcon = require('../assets/Venmo_Logo_App.png'); //. for local ..for in Divvy
+  const VenmoIconComponent = <Image source={VenmoIcon} style={styles.venmoIcon} resizeMode="contain" />;
+
+    // Custom RadioButton component
+  const RadioButton = ({ value, status, onPress }) => (
+    <TouchableOpacity onPress={onPress} style={styles.radioButton}>
+      <View style={[styles.radioCircle, status === 'checked' && styles.radioCircleChecked]} />
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.navigationBar}>
-       <View style={styles.leftNavContainer}>
-      <TouchableOpacity onPress={handleGoBack} style={styles.navButton}>
-        <AntDesign name="left" size={20} color="black" />
-      </TouchableOpacity>
-      </View>
-      <View style={styles.navTitleContainer}>  
-      <Text style={[styles.navTitleText, {  position: 'absolute',
-        left: Dimensions.get('window').width / 2,  // Calculate horizontal center
-        transform: [{ translateX: -Dimensions.get('window').width / 2.47}], //adjust position
-        textAlign: 'center'}]}>{title}</Text>
-      </View>
-      <View style={styles.rightNavContainer}>
-         {VenmoLogoComponent}                            
-        <TouchableOpacity onPress={handleGoForward} style={styles.navButton}>
-          <AntDesign name="right" size={20} color="black" />
+      {/* Left Navigation Container */}
+      <View style={styles.leftNavContainer}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.navButton}>
+          <AntDesign name="left" size={20} color="black" />
         </TouchableOpacity>
+      </View>
+
+      {/* Center Title */}
+      <View style={styles.navTitleContainer}>
+        <Text style={[styles.navTitleText, { textAlign: 'center' }]}>{title}</Text>
+      </View>
+
+      {/* Right Navigation Container */}
+      <View style={styles.rightNavContainer}>
+        <TouchableOpacity onPress={soloMessageButton} style={styles.navButton}>
+          {VenmoIconComponent}
+        </TouchableOpacity>
+
+      {/* Modal for Options */}
+      <Modal
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+        animationType="slide"
+      >
+        <TouchableOpacity style={styles.modalBackground} onPress={closeModal} activeOpacity={1}>
+          <View style={styles.modalContainer}>
+
+            {/* Select Who Paid Section */}
+            <Text style={styles.modalTitle}>Select Who Paid</Text>
+            <View style={[styles.dropdownContainer, {}]}>
+              <TouchableOpacity onPress={() => setDropdownVisible(!dropdownVisible)} style={styles.dropdownButton}>
+                <Text style={styles.dropdownButtonText}>
+                  {selectedOption ? DATA1.find(user => user.phoneNumber === selectedOption)?.userName + ' - ' + DATA1.find(user => user.phoneNumber === selectedOption)?.phoneNumber
+ : 'Select a Person'}
+                </Text>
+                <AntDesign name={dropdownVisible ? 'up' : 'down'} size={16} color="#007BFF" />
+              </TouchableOpacity>
+              {dropdownVisible && (
+                <View style={styles.dropdownMenu}>
+                {DATA1.map((user, index) => (
+                  <View key={index}>
+                    <TouchableOpacity
+                      style={[
+                        styles.dropdownMenuItem,
+                        selectedOption === user.phoneNumber && styles.selectedMenuItem,
+                      ]}
+                      onPress={() => {
+                        setSelectedOption(user.phoneNumber);
+                        setDropdownVisible(false);
+                      }}
+                    >
+                      {selectedOption === user.phoneNumber ? (
+                        <LinearGradient
+                          colors={[colors.fadedHighlightColor, colors.highlightColor, colors.fadedHighlightColor]}
+                          style={[styles.gradientDropDown, { height: styles.dropdownMenuItem.height }]} // Match menu item height
+                          start={{ x: 0.5, y: 0 }}
+                          end={{ x: 0.5, y: 1 }}
+                        >
+                          <Text style={[styles.dropdownMenuItemText, styles.selectedMenuItemText]}>
+                            {user.userName}{' - '}{user.phoneNumber}
+                          </Text>
+                        </LinearGradient>
+                      ) : (
+                        <Text style={styles.dropdownMenuItemText}>{user.userName}</Text>
+                      )}
+                    </TouchableOpacity>
+                    {index < DATA1.length - 1 && <View style={styles.separator} />}
+                  </View>
+                ))}
+              </View>
+              )}
+            </View>
+
+            <View style={[styles.modalHorizontalLine, {marginTop: 14, width: '100%'}]}></View>
+
+             {/* New Section: Contact Method Choice */}
+             {selectedOption && (
+  <View>
+    <Text style={[styles.modalTitle, { marginTop: 14, width: '100%', overflow: 'scroll'}]}>
+      Choose{' '}
+      {DATA1.find((user) => user.phoneNumber === selectedOption)?.userName}'s
+      Venmo Preference
+    </Text>
+    <View style={styles.contactMethodGrid}>
+      <TouchableOpacity
+        style={[
+          styles.contactMethodGridItem,
+          contactMethod === 'phone' && styles.selectedContactMethodPhoneNumber,
+        ]}
+        onPress={() => setContactMethod('phone')}
+      >
+        <Text style={styles.contactMethodText}>Phone Number</Text>
+        <Text style={styles.contactMethodSubtext}>
+          (Assume Phone number is associated with{' '}
+          {
+            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+          }'s Venmo)
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.contactMethodGridItem,
+          contactMethod === 'venmo' && styles.selectedContactMethodVenmoAccount,
+        ]}
+        onPress={() => setContactMethod('venmo')}
+      >
+        <Text style={styles.contactMethodText}>Venmo Account</Text>
+        <Text style={styles.contactMethodSubtext}>
+          (Enter{' '}
+          {
+            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+          }'s Venmo account username instead)
+        </Text>
+      </TouchableOpacity>
+    </View>
+    {(contactMethod === 'venmo' &&
+      DATA1.find((user) => user.phoneNumber === selectedOption)?.userName ===
+        'Self') ? (
+      <View style={styles.venmoInputContainer}>
+        <Text style={[styles.venmoInputLabel, {fontSize: 12}]}>
+          Enter Your Venmo Username Below (To Change It)
+        </Text>
+        <View style={styles.inputWithCheck}>
+        <TextInput
+          style={[styles.venmoInput, styles.inputFill]}
+          placeholder="Venmo Username"
+          value={venmoUsernameInput}
+          onChangeText={(text) => {
+            setVenmoUsernameInput(text);
+            setVenmoUsername(text);
+          }}
+          placeholderTextColor="gray"
+        />
+        <TouchableOpacity
+          style={styles.checkMarkContainer}
+          onPress={() => {
+            Keyboard.dismiss();
+        
+            const selectedUser = DATA1.find(
+              (user) => user.phoneNumber === selectedOption || user.userName === 'Self'
+            );
+        
+            if (selectedUser) {
+              let updatedData;
+        
+              if (selectedUser.userName === 'Self') {
+                // Always update 'Self' with venmoUsernameInput
+                updatedData = DATA1.map((user) =>
+                  user.userName === 'Self'
+                    ? { ...user, phoneNumber: venmoUsernameInput }
+                    : user
+                );
+                setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
+              } else {
+                if (contactMethod === 'phone') {
+                  // Update phoneNumber in DATA1 if contactMethod is phone
+                  updatedData = DATA1.map((user) =>
+                    user.phoneNumber === selectedOption
+                      ? { ...user, phoneNumber: venmoUsernameInput }
+                      : user
+                  );
+                  setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
+                } else {
+                  // No updates to DATA1; just update venmoUsername with the input
+                  setSelectedOption(selectedOption); // Updates venmoUsername to match venmoUsernameInput
+                }
+              }
+        
+              if (updatedData) {
+                // Update the state with the new DATA1
+                setData1(updatedData);
+              // Clear the venmoUsernameInput field after saving
+               setVenmoUsernameInput('');
+              }
+             
+            }
+          }}
+        >
+          <AntDesign name="checksquareo" size={24} color="green" />
+        </TouchableOpacity>
+        </View>
+      </View>
+    ) : contactMethod === 'venmo' ? (
+      <View style={styles.venmoInputContainer}>
+        <Text style={styles.venmoInputLabel}>
+          Enter{' '}
+          {
+            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+          }'s Venmo Username Below
+        </Text>
+        <View style={styles.inputWithCheck}> 
+        <TextInput
+            style={[styles.venmoInput, styles.inputFill]}
+            placeholder="Venmo Username"
+            value={venmoUsernameInput}
+            onChangeText={(text) => {
+              setVenmoUsernameInput(text);
+              setVenmoUsername(text);
+            }}
+            placeholderTextColor="gray"
+          />
+          <TouchableOpacity
+          style={styles.checkMarkContainer}
+          onPress={() => {
+            Keyboard.dismiss();
+        
+            const selectedUser = DATA1.find(
+              (user) => user.phoneNumber === selectedOption || user.userName === selectedOption
+            );
+        
+            if (selectedUser) {
+              let updatedData;
+        
+                if (contactMethod === 'venmo') {
+                  // Update phoneNumber in DATA1 if contactMethod is phone
+                  updatedData = DATA1.map((user) =>
+                    user.phoneNumber === selectedOption
+                      ? { ...user, phoneNumber: venmoUsernameInput }
+                      : user
+                  );
+                  setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
+                } else {
+                  // No updates to DATA1; just update venmoUsername with the input
+                  setSelectedOption(selectedOption); // Updates venmoUsername to match venmoUsernameInput
+                }
+              
+        
+              if (updatedData) {
+                // Update the state with the new DATA1
+                setData1(updatedData);
+              // Clear the venmoUsernameInput field after saving
+               setVenmoUsernameInput('');
+              }
+            }
+             
+            }}
+        >
+           <AntDesign name="checksquareo" size={24} color="green" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    ) : null}
+  </View>
+)}
+
+            <View style={[styles.modalHorizontalLine, {marginTop: 16, width: '100%'}]}></View>
+            {/* Modal Title */}
+            <Text style={[styles.modalTitle, { marginTop: 14, marginBottom: 14 }]}>Choose an Action</Text>
+            
+
+            {/* Group Chat Option */}
+            <View style={styles.radioContainer}>
+              <RadioButton
+                value="groupChat"
+                status={selectedOption === 'groupChat' ? 'checked' : 'unchecked'}
+                onPress={() => {
+                  setSelectedOption('groupChat');
+                  sendGroupMessage();
+                }}
+              />
+              <Text style={styles.radioLabel}>Send All Links via Group Chat</Text>
+            </View>
+
+          {/* Individual User Options */}
+          {DATA1.filter(user => user.userName !== 'Self').map((user, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={styles.radioContainer} 
+              onPress={() => {
+                setSelectedOption(`individual-${user.userName}`);
+                sendIndividualMessage(user);
+              }}
+            >
+              <RadioButton
+                value={`individual-${user.userName}`}
+                status={selectedOption === `individual-${user.userName}` ? 'checked' : 'unchecked'}
+                // onPress={() => {}}  // Remove the onPress here since it's handled by the parent TouchableOpacity
+              />
+              <Text style={styles.radioLabel}>Send Venmo Link to {user.userName}</Text>
+            </TouchableOpacity>
+          ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
       </View>
     </View>
   );
 };
- 
  
 // FlatList in the main App
 export default function Breakdown() {
   const route = useRoute();
   const initialData = route.params?.updatedData || DATA1; // Get data from route params
   const [data1, setData1] = useState(initialData); // Store in state
+  const [tax, setTax] = useState(0);
   const [selectedItem, setSelectedItem] = useState(null); // Track which row is selected
   const [selectedUserName, setSelectedUserName] = useState(null)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null); // Track the selected radio button
   const navigation = useNavigation();
-  // const [bottomBarHeight, setBottomBarHeight] = useState(0);
-  // const bottomBarRef = useRef(null);
  
   const toggleBottomBar = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsBottomBarExpanded(prev => !prev);
   };
- 
+
   // Update toggleSelect to handle multiple users:
   const toggleSelect = (itemName, userName) => {
     if (selectedItem === itemName && selectedUserName === userName) {
@@ -419,13 +948,40 @@ export default function Breakdown() {
       setSelectedUserName(null);
     } else {
       setSelectedItem(itemName);
-      setSelectedUserName(userName);
+      setSelectedUserName(userName); // Keep track of selected userName
     }
   };
- 
+
+  const soloMessageButton = () => {
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+  };
+
+  useEffect(() => {
+    if (initialData && initialData.receiptEndVariables) { // Check for existence
+      setTax(parseFloat(initialData.receiptEndVariables.tax));
+    }
+  }, [initialData]); // Run effect when initialData changes
+
   return (
+
     <View style={styles.pageBackground}>
-       <NavigationBar title="Your Items" navigation={navigation}/>
+    <NavigationBar 
+      title="Payment Summary" 
+      modalVisible={modalVisible} 
+      selectedOption={selectedOption} 
+      closeModal={closeModal} 
+      soloMessageButton={soloMessageButton} 
+      setModalVisible={setModalVisible} 
+      setSelectedOption={setSelectedOption}
+      DATA1={data1}
+      setData1={setData1}
+      currency={currency}
+      tax={tax}
+    />
       <View style={{ flexGrow: 1}}>
         <FlatList  style={{flex: 1}}
           data={data1} // Use the DATA array
@@ -435,30 +991,27 @@ export default function Breakdown() {
               selectedItem={selectedItem}
               toggleSelectItem={(itemName) => toggleSelect(itemName, item.userName)}  // Pass userName to toggleSelect
               keyExtractor={(item) => item.userName} // Key by userName
- 
             />
           )}
           keyExtractor={(item) => item.userName} // Key by userName
-          contentContainerStyle={[
-            styles.flatListContent,
-           
-          ]}
+          contentContainerStyle={[styles.flatListContent]}
         />
         </View>
-        <BottomBar
+        <BottomBar 
                   data={data1}
-                  receiptEndVariables={initialData.receiptEndVariables}
-                  isBottomBarExpanded={isBottomBarExpanded}
-                  toggleBottomBar={toggleBottomBar}
+                  tax={tax}
+                  isBottomBarExpanded={isBottomBarExpanded} 
+                  toggleBottomBar={toggleBottomBar} 
               />
       </View>
+      
   );
 };
  
 const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
-    backgroundColor: colors.backgroundColor, // Background color
+    backgroundColor: colors.backgroundColorBehindCard, // Background color
     paddingVertical: 5,
     paddingHorizontal: 2,
   },
@@ -484,7 +1037,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     width: Dimensions.get('window').width-25,
     paddingBottom: 3,
-    // overflow: 'hidden',
+    //overflow: 'hidden',
     // Shadow for iOS
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -525,11 +1078,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 2,
   },
+  adjustedWidthContainer: {
+    flex: 1,
+    paddingRight: 0,
+    minWidth: 195,
+    maxWidth: 195,
+    marginLeft: 4,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
   rightContainer: {
     flexDirection: 'row', // Align the data in row format
     justifyContent: 'space-between',
     flex: 1,
-    marginLeft: 60,
+    marginLeft: 0,
   },
   rightContainerV2: {
     flexDirection: 'row', // Align the data in row format
@@ -543,8 +1105,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2, // Consistent padding
   },
   // Individual containers for each field in the right container
+  netPriceContainer: {
+    marginLeft: Dimensions.get('window').width*0.012,
+    // width: 50,
+    width: Dimensions.get('window').width*.11,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
   yourCostContainer: {
     marginLeft: 0,
+    // width: 50,
+    width: Dimensions.get('window').width*.11,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  yourCostContainerAdjusted: {
+    marginLeft: Dimensions.get('window').width*-0.005,
     // width: 50,
     width: Dimensions.get('window').width*.11,
     justifyContent: 'center',
@@ -554,6 +1130,13 @@ const styles = StyleSheet.create({
     // width: 60,
     width: Dimensions.get('window').width*.13,
     marginLeft: 7,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splitContainerAdjusted: {
+    // width: 60,
+    width: Dimensions.get('window').width*.13,
+    marginLeft: Dimensions.get('window').width*.026,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -575,7 +1158,21 @@ const styles = StyleSheet.create({
   yourCostHeaderContainer: {
     // width: 70,
     width: Dimensions.get('window').width*.17,
-    marginLeft: -12,
+    marginLeft: Dimensions.get('window').width*.005,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  yourCostHeaderContainerAdjusted: {
+    // width: 70,
+    width: Dimensions.get('window').width*.20,
+    marginLeft: Dimensions.get('window').width*-0.033,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  netPriceHeaderContainer: {
+    width: Dimensions.get('window').width*.16,
+    // marginLeft: 4,
+    marginLeft: Dimensions.get('window').width*.115,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -583,7 +1180,15 @@ const styles = StyleSheet.create({
     // width: 40,
     width: Dimensions.get('window').width*.09,
     // marginLeft: 4,
-    marginLeft: Dimensions.get('window').width*-.008,
+    marginLeft: Dimensions.get('window').width*.025,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splitHeaderContainerAdjusted: {
+    // width: 40,
+    width: Dimensions.get('window').width*.11,
+    // marginLeft: 4,
+    marginLeft: Dimensions.get('window').width*.01,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -591,7 +1196,7 @@ const styles = StyleSheet.create({
     // width: 40,
     width: Dimensions.get('window').width*.09,
     // marginLeft: 19,
-    marginLeft: Dimensions.get('window').width*.0485,
+    marginLeft: Dimensions.get('window').width*.043,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -599,7 +1204,7 @@ const styles = StyleSheet.create({
     // width: 40,
     width: Dimensions.get('window').width*.10,
     // marginLeft: 17,
-    marginLeft: Dimensions.get('window').width*.035,
+    marginLeft: Dimensions.get('window').width*.015,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -615,6 +1220,19 @@ const styles = StyleSheet.create({
     color: '#545353',
     // fontWeight: 'bold',
     fontFamily: fonts.itemFont,
+  },
+  netPriceText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    textAlign: 'right',
+    color: 'black',
+  },
+  clickableText: {
+    textDecorationLine: 'underline',
+    textDecorationColor: '#ADD8E6', // Light blue color for underline
+    textDecorationStyle: 'solid', // Makes the underline solid
+    textDecorationThickness: 1.5, // Increase for a thicker underline
+    textDecorationOffset: 20, // Adjust this value to position the underline lower
   },
   yourCostText: {
     fontSize: 14,
@@ -661,7 +1279,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   expandButton: {
-    backgroundColor: '#4F65B1',
+    backgroundColor: '#4f65b1', //old is #007BFF
     padding: 6,
     marginRight: 10,  // Space between button and "Totals:"
     borderRadius: 50,
@@ -681,28 +1299,36 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'left',
     marginRight: 10,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   breakdownCostContainer: {
-    marginLeft: -67,
+    // marginLeft: Dimensions.get('window').width*-.1,
     // flex: 1/.5,
-    marginVertical: 7,
+    marginVertical: 7, 
     alignItems: 'center', // Align with 'Your Cost' column
+  },
+  breakdownCostContainerAdjusted: {
+    width: Dimensions.get('window').width*.536,
+    // flex: 1/.3,
+    marginVertical: 4, 
+    alignItems: 'center',
   },
   breakdownSaleContainer: {
     // marginLeft: 0,
     // flex: 1/.5,
-    marginVertical: 7,
+    // marginLeft: Dimensions.get('window').width*.0001,
+    marginVertical: 7, 
     alignItems: 'center', // Align with 'Sale' column
   },
   breakdownStoreContainer: {
     // marginLeft: 0,
     // flex: 1/.5,
-    marginVertical: 7,
+    // marginLeft: -10,
+    marginVertical: 7, 
     alignItems: 'center', // Align with 'Store Price' column
   },
   breakdownCostText: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: 'monospace',
     fontWeight: 'bold',
     textAlign: 'right',
@@ -738,7 +1364,7 @@ const styles = StyleSheet.create({
     width: Dimensions.get('window').width,
     position: 'absolute', //so that it sits at the bottom of the screen
     bottom: 0, //add bottom 0
-    borderWidth: 1,
+    borderWidth: 1, 
     borderColor: 'black',
   },
   buttonContainer: {     // Styles for the button's container
@@ -752,7 +1378,7 @@ const styles = StyleSheet.create({
     padding: 10,
     alignContent: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1, 
     borderColor: 'black',
   },
   bottomBarButton: { //style for button to expand bar
@@ -816,7 +1442,7 @@ const styles = StyleSheet.create({
   },
   allDataText: {     // "All" data
     minWidth: 64,
-    maxWidth: 70,
+    maxWidth: 64,
     marginRight: 0,
     fontSize: 14,
     fontFamily: 'monospace',
@@ -835,12 +1461,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 15,
     paddingTop:  Platform.OS === 'ios' ? 27: 27, // Handle padding for different OS
     paddingBottom: 0,
-    backgroundColor: '#b9c5ed', // Light gray background
+    backgroundColor: '#f0f0f0', // Light gray background
     borderBottomWidth: 1,
-    borderBottomColor: '#b9c5ed', // Light gray border
+    borderBottomColor: '#ddd', // Light gray border
     elevation: 5, //for shadow on the navigation bar
   },
   navButton: {
@@ -861,6 +1487,11 @@ const styles = StyleSheet.create({
     height: 35, // Adjust height as needed
     marginRight: 0, // Add some spacing between the image and the button
   },
+  venmoIcon:{
+    width: 120,  // Adjust width as needed
+    height: 35, // Adjust height as needed
+    marginRight: 0
+  },
   leftNavContainer:{
     alignItems: 'center',
     flexDirection: 'row',
@@ -871,4 +1502,195 @@ const styles = StyleSheet.create({
     alignItems: 'center',   // Center vertically
     width: 100,
   },
+  proportionalTaxButton: {
+    backgroundColor: 'grey',
+    borderRadius: 5,
+    padding: 5,
+    minWidth: 5,
+    maxWidth: 87,
+    marginRight: 10,  // Add some margin
+  },
+  proportionalTaxButtonActive: {
+    backgroundColor: 'green',
+  },
+  proportionalTaxButtonText: {
+    color: 'white',
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'flex-start', // Align everything to the left
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    alignSelf: 'center', // Center the title text
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  radioLabel: {
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#007BFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioCircle: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'transparent',
+  },
+  radioCircleChecked: {
+    backgroundColor: '#007BFF',
+  },
+  dropdownContainer: {
+    position: 'relative',
+    marginBottom: 2,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+    width: '100%',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 42,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    padding: 10,
+    zIndex: 10,
+  },
+  dropdownMenuItem: {
+    paddingVertical: 10,
+    height: 38,
+  },
+  selectedMenuItemText: {
+    color: 'black',
+    fontWeight: 'bold',
+    fontSize: 16, // Adjust based on your design needs
+
+  },
+  gradientDropDown: {
+    position: 'absolute', // Position absolute to cover the row
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 8, // Optional: Add if your rows have rounded corners
+    justifyContent: 'center', // Centers the content vertically
+    alignItems: 'center', // Centers the content horizontally
+  },
+  separator: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#d3d3d3',
+    marginHorizontal: 5, // Optional: adds space between line and edges
+  },
+  dropdownMenuItemText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  dropdownButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  contactMethodGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',  // Distribute items evenly
+    marginTop: -6,
+    alignItems: 'flex-start'
+  },
+  contactMethodGridItem: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 5,
+    borderRadius: 10,
+    flex: 1, // Take up equal width
+    marginHorizontal: 3,  // Small spacing between items
+    alignItems: 'center', // Center text vertically and horizontally
+    
+  },
+  selectedContactMethodPhoneNumber: {
+    backgroundColor: '#b6fbbb', // Or another highlight color
+    borderColor: "#6e6e6e",
+  },
+  selectedContactMethodVenmoAccount: {
+    backgroundColor: colors.highlightColor, // Or another highlight color
+    borderColor: '#6e6e6e',
+  },
+  contactMethodText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  contactMethodSubtext: {
+    fontSize: 12,
+    color: '#666', // Slightly lighter text color
+  },
+  modalHorizontalLine: {
+    borderBottomColor: '#ccc', // Choose the color of the line
+    borderBottomWidth: 1.5,      // Thickness of the line
+    marginVertical: 1,
+  },
+  venmoInputContainer: {
+    marginTop: 10,  // Add some spacing
+  },
+  venmoInputLabel: {
+    color: 'red',
+    fontWeight: '500',
+    marginBottom: 5,
+    fontSize: 13,
+    alignSelf: 'center', 
+  },
+  venmoInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 8,
+    borderRadius: 5,
+  },
+  inputWithCheck: {
+    flexDirection: 'row',
+    alignItems: 'center',  // Vertically center items
+    justifyContent: 'space-between' // added to evenly distribute
+},
+inputFill: {  // New style to make TextInput fill available space
+    flex: 1, 
+    marginRight: 0,  // Add some spacing between input and checkmark
+},
+checkMarkContainer: {
+  position: 'absolute',  // Position the checkmark
+  right: 10,            // Adjust spacing as needed
+  top: '50%',             // Vertically center 
+  transform: [{ translateY: -12 }], // Adjust for icon size
+  zIndex: 1,          // Ensure it's above other elements
+},
 });
+
+//npm install expo-sms
