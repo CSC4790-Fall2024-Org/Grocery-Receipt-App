@@ -134,7 +134,7 @@ if (!item || !item.items || !Array.isArray(item.items)) {
     return <Text>Invalid item data for TaxRow</Text>;
   }
 
-  console.log("item data in TaxRow: "+ item);
+  // console.log("item data in TaxRow: "+ item);
 
   // const userSubtotal = item.reduce((sum, i) =>  // item.items is the correct array here
   //   sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
@@ -330,13 +330,17 @@ const BreakdownRow = ({ numUsers, item, userSubtotal, totalSubtotal, isExpanded,
     return <Text>No items to display for {item?.userName || "Unknown User"}.</Text>;
   }
 
-  console.log("data for BreakdownRow:", item);
+  // console.log("data for BreakdownRow:", item);
+
+  function roundToTwo(num) {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+}
 
   const userTax = proportionalTax ?
       (userSubtotal / totalSubtotal) * tax :
       (tax / numUsers);
 
-  const totalYourCost = userSubtotal + userTax;
+  const totalYourCost = roundToTwo(userSubtotal) + roundToTwo(userTax);
 
   const toggleBreakdown = () => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -530,7 +534,7 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
   const [expanded, setExpanded] = useState(false);
   const [netPriceIsSelected, setNetPriceIsSelected] = useState(false); // Add netPriceIsSelected state
   // Toggle show more/less
-  console.log("item for Container:" + item);
+  // console.log("item for Container:" + item);
     // IMPORTANT: Check the structure of item and item.items!
     if (!item || !item.items || !Array.isArray(item.items)) {
       console.error("Invalid item data in Container:", item);  // Log the problematic item
@@ -641,36 +645,70 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
   );
 };
  
-const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOption, closeModal, soloMessageButton, setModalVisible, setSelectedOption, setData1, currency, tax }) => {
+const NavigationBar = ({ numUsers, setSelectedPayer, selectedPayer, proportionalTax, totalSubtotal, data, title, modalVisible, selectedOption, closeModal, soloMessageButton, setModalVisible, setSelectedOption, setData1, currency, tax }) => {
   const [dropdownVisible, setDropdownVisible] = React.useState(false);
   const [contactMethod, setContactMethod] = useState(null);
   const [venmoUsernameInput, setVenmoUsernameInput] = useState('');
   const [venmoUsername, setVenmoUsername] = useState(''); // Use state for venmoUsername
-
   const navigation = useNavigation();
-  // const venmoUsername = 'Change-This-Username'; // Your Venmo username
 
-  useEffect(() => {
-    if (selectedOption) {
-        const selectedUser = data.find(user => user.phoneNumber === selectedOption);
-        if (selectedUser) {
-            if (contactMethod === 'phone') {
-                setVenmoUsername(selectedUser.phoneNumber);
-            } else if (contactMethod === 'venmo') {
-                setVenmoUsername(venmoUsernameInput); // Use input for Venmo
-            }
-        }
-    } 
-    // else if (!selectedOption || selectedOption === 'Self') {
-    //     // Reset or set to "Self"
-    //     if (contactMethod === 'venmo') {
-    //         setVenmoUsername(venmoUsernameInput);
-    //     } else {
-    //         setVenmoUsername('');
-    //     }
-    // }
+  const [venmoPaymentInfo, setVenmoPaymentInfo] = useState({});  // To store venmo username
+  const [selectedAction, setSelectedAction] = useState(null); // To track selected action
+  const [selectedPayerName, setSelectedPayerName] = useState(null); // Store selected payer's userName
 
-}, [selectedOption, contactMethod, venmoUsernameInput, data]);
+    const handlePayerSelect = (user) => {
+      setSelectedPayer(user);
+      setSelectedPayerName(user.userName); // Update selected payer's name
+      setVenmoPaymentInfo(prevInfo => ({
+          ...prevInfo,
+          [user.userName]: {
+              method: (prevInfo[user.userName]?.method) || 'phone', // Preserve previous method if it exists
+              username: (prevInfo[user.userName]?.username) || user.phoneNumber // Preserve Venmo username
+          }
+      }));
+
+  };
+
+  const handleVenmoInfoChange = (newVenmoUsername, payerName) => {
+      Keyboard.dismiss();
+      setVenmoPaymentInfo(prevInfo => ({
+          ...prevInfo,
+          [payerName]: {  // Use payerName as the key
+              method: 'venmo',
+              username: newVenmoUsername
+          }
+      }));
+
+      if (payerName === 'Self' && selectedPayer && selectedPayer.userName === 'Self') {
+        setData1(data.map(user => 
+            user.userName === 'Self' ? { ...user, phoneNumber: newVenmoUsername } : user
+        ));
+    }
+};
+
+
+useEffect(() => {
+  if (selectedPayerName) { // Use selectedPayerName
+      const selectedUser = data.find(user => user.userName === selectedPayerName);
+
+      if (selectedUser) {
+          setSelectedPayer(selectedUser);
+          const paymentInfo = venmoPaymentInfo[selectedPayerName]; // Use selectedPayerName
+
+
+          if (paymentInfo) {
+              setContactMethod(paymentInfo.method);
+              if (paymentInfo.method === 'venmo') {
+                  setVenmoUsernameInput(paymentInfo.username);
+              }
+          } else {
+              setContactMethod('phone');
+              setVenmoUsernameInput(selectedUser.phoneNumber); // Set to phone number initially
+          }
+          setVenmoUsername(selectedUser.phoneNumber); // Only if using the phone number
+      }
+  }
+}, [selectedPayerName, data, venmoPaymentInfo]); // selectedPayerName as dependency
 
   // Function to go back
   const handleGoBack = () => {
@@ -679,20 +717,12 @@ const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOptio
   };
 
   // Example of calculateOwedAmount function
-  const calculateOwedAmount = (userName, data, tax) => {
+  const calculateOwedAmount = (userName) => {
     const user = data.find(u => u.userName === userName);
     if (!user) {
         console.error("User not found:", userName);
         return 0;
     }
-
-    // const totalSubtotal = data.reduce((sum, user) =>
-    //     sum + user.items.reduce((itemSum, item) =>
-    //         itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)),
-    //         0
-    //     ), 0);
-
-    // console.log('Total Subtotal:', totalSubtotal);
 
     const userSubtotal = user.items.reduce((sum, item) => {
         const cost = parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
@@ -701,23 +731,38 @@ const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOptio
     }, 0);
     
     // Calculate tax proportion
-    const userTax = (userSubtotal / totalSubtotal) * tax;
+    const userTax = proportionalTax ?
+      (userSubtotal / totalSubtotal) * tax :
+      (tax / numUsers); 
+    console.log("userTax in NavigationBar" + userTax);
     return (userSubtotal + userTax).toFixed(2);
 };
 
-  const createVenmoLink = (amount, note) => {
-    return `venmo://paycharge?txn=pay&recipients=${venmoUsername}&amount=${amount}&note=${encodeURIComponent(note)}`;
-  };
+const createVenmoLink = (amount, note, recipient) => { // Add recipient argument
+  // return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}¬e=${encodeURIComponent(note)}`;
+  return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}&note=${encodeURIComponent(note)}`;
+};
 
 
-  const sendIndividualMessage = async (user) => {
-    const owedAmount = calculateOwedAmount(user.userName);
-    const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
-    const message = `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}. Thanks for using Divvy!`;
+  const sendIndividualMessage = async (recipient) => { // Recipient passed as argument
+    if (!selectedPayer) {
+        console.error("No payer selected");
+        return;
+    }
+
+    const owedAmount = calculateOwedAmount(recipient.userName);
+
+    const payerVenmoInfo = venmoPaymentInfo[selectedPayer.userName] || { method: 'phone', username: selectedPayer.phoneNumber };
+
+    let venmoRecipient = payerVenmoInfo.method === 'venmo' ? payerVenmoInfo.username : selectedPayer.phoneNumber;
+    const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${recipient.userName}`, venmoRecipient); // Pass recipient
+
+    const message = `Hey ${recipient.userName}, you owe $${owedAmount}. Click the link to pay on Venmo: ${venmoLink}. Thanks for using Divvy!`;
+
 
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
-      await SMS.sendSMSAsync([user.phoneNumber], message);
+        await SMS.sendSMSAsync([recipient.phoneNumber], message); // Use recipient.phoneNumber
     } else {
       alert('SMS not available. Opening Venmo directly...');
       Linking.openURL(venmoLink);
@@ -727,14 +772,16 @@ const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOptio
 
   const sendGroupMessage = async () => {
     let combinedMessage = '';
-
     for (const user of data) {
-      const owedAmount = calculateOwedAmount(user.userName);
-      const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
-      combinedMessage += `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}\n\n`;
-    }
+        if (user.userName !== selectedPayer.userName) { // Don't send message to self
+            const owedAmount = calculateOwedAmount(user.userName);
 
-    combinedMessage+= `Thanks for using Divvy!`;
+            const recipient = venmoPaymentInfo[selectedPayer.userName]?.method === 'venmo' ? venmoPaymentInfo[selectedPayer.userName].username : selectedPayer.phoneNumber
+            const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`, recipient);
+
+            combinedMessage += `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay on Venmo: ${venmoLink}.\n\n`;
+        }
+    }
 
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
@@ -776,273 +823,165 @@ const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOptio
           {VenmoIconComponent}
         </TouchableOpacity>
 
-      {/* Modal for Options */}
-      <Modal
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeModal}
-        animationType="slide"
-      >
-        <TouchableOpacity style={styles.modalBackground} onPress={closeModal} activeOpacity={1}>
-          <View style={styles.modalContainer}>
+        {/* Modal for Options */}
+        <Modal
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={closeModal}
+          animationType="slide"
+        >
+          <TouchableOpacity style={styles.modalBackground} onPress={closeModal} activeOpacity={1}>
+            <View style={styles.modalContainer}>
 
-            {/* Select Who Paid Section */}
-            <Text style={styles.modalTitle}>Select Who Paid</Text>
-            <View style={[styles.dropdownContainer, {}]}>
-              <TouchableOpacity onPress={() => setDropdownVisible(!dropdownVisible)} style={styles.dropdownButton}>
-                <Text style={styles.dropdownButtonText}>
-                  {selectedOption ? data.find(user => user.phoneNumber === selectedOption)?.userName + ' - ' + data.find(user => user.phoneNumber === selectedOption)?.phoneNumber
- : 'Select a Person'}
-                </Text>
-                <AntDesign name={dropdownVisible ? 'up' : 'down'} size={16} color="#007BFF" />
-              </TouchableOpacity>
-              {dropdownVisible && (
-                <View style={styles.dropdownMenu}>
-                {data.map((user, index) => (
-                  <View key={index}>
-                    <TouchableOpacity
-                      style={[
-                        styles.dropdownMenuItem,
-                        selectedOption === user.phoneNumber && styles.selectedMenuItem,
-                      ]}
-                      onPress={() => {
-                        setSelectedOption(user.phoneNumber);
-                        setDropdownVisible(false);
-                      }}
-                    >
-                      {selectedOption === user.phoneNumber ? (
-                        <LinearGradient
-                          colors={[colors.fadedHighlightColor, colors.highlightColor, colors.fadedHighlightColor]}
-                          style={[styles.gradientDropDown, { height: styles.dropdownMenuItem.height }]} // Match menu item height
-                          start={{ x: 0.5, y: 0 }}
-                          end={{ x: 0.5, y: 1 }}
+              {/* Select Who Paid Section */}
+              <Text style={styles.modalTitle}>Select Who Paid</Text>
+              <View style={[styles.dropdownContainer, {}]}>
+                <TouchableOpacity onPress={() => setDropdownVisible(!dropdownVisible)} style={styles.dropdownButton}>
+                  <Text style={styles.dropdownButtonText}>
+                    {selectedPayerName ? 
+                      data.find(user => user.userName === selectedPayerName)?.userName + ' - ' + 
+                      data.find(user => user.userName === selectedPayerName)?.phoneNumber 
+                      : 'Select a Person'}
+                  </Text>
+                  <AntDesign name={dropdownVisible ? 'up' : 'down'} size={16} color="#007BFF" />
+                </TouchableOpacity>
+                {dropdownVisible && (
+                  <View style={styles.dropdownMenu}>
+                    {data.map((user, index) => (
+                      <View key={index}>
+                        <TouchableOpacity
+                          style={[
+                            styles.dropdownMenuItem,
+                            selectedPayerName === user.userName && styles.selectedMenuItem,
+                          ]}
+                          onPress={() => {
+                            handlePayerSelect(user);
+                            setDropdownVisible(false);
+                          }}
                         >
-                          <Text style={[styles.dropdownMenuItemText, styles.selectedMenuItemText]}>
-                            {user.userName}{' - '}{user.phoneNumber}
-                          </Text>
-                        </LinearGradient>
-                      ) : (
-                        <Text style={styles.dropdownMenuItemText}>{user.userName}</Text>
-                      )}
-                    </TouchableOpacity>
-                    {index < data.length - 1 && <View style={styles.separator} />}
+                          {selectedPayerName === user.userName ? (
+                            <LinearGradient
+                              colors={[colors.fadedHighlightColor, colors.highlightColor, colors.fadedHighlightColor]}
+                              style={[styles.gradientDropDown, { height: styles.dropdownMenuItem.height }]}
+                              start={{ x: 0.5, y: 0 }}
+                              end={{ x: 0.5, y: 1 }}
+                            >
+                              <Text style={[styles.dropdownMenuItemText, styles.selectedMenuItemText]}>
+                                {user.userName} - {user.phoneNumber}
+                              </Text>
+                            </LinearGradient>
+                          ) : (
+                            <Text style={styles.dropdownMenuItemText}>{user.userName} - {user.phoneNumber}</Text>
+                          )}
+                        </TouchableOpacity>
+                        {index < data.length - 1 && <View style={styles.separator} />}
+                      </View>
+                    ))}
                   </View>
-                ))}
+                )}
               </View>
+
+              <View style={[styles.modalHorizontalLine, {marginTop: 14, width: '100%'}]}></View>
+
+              {/* Contact Method Choice */}
+              {selectedPayerName && ( 
+                <View style={{width: '100%'}}>
+                  <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.modalTitle, {marginTop: 14, width: '100%'}]}>
+                    Choose {data.find((user) => user.userName === selectedPayerName)?.userName}'s Preference
+                  </Text>
+                  <View style={styles.contactMethodGrid}>
+                  <TouchableOpacity
+                    style={[
+                      styles.contactMethodGridItem,
+                      contactMethod === 'phone' && styles.selectedContactMethodPhoneNumber,
+                    ]}
+                    onPress={() => setContactMethod('phone')}
+                  >
+                    <Text style={styles.contactMethodText}>Phone Number</Text>
+                    <Text style={styles.contactMethodSubtext}>
+                        (Assume Phone number is associated with {data.find((user) => user.userName === selectedPayerName)?.userName}'s Venmo)
+                    </Text>
+                     </TouchableOpacity>
+                   <TouchableOpacity
+                            style={[
+                              styles.contactMethodGridItem,
+                              contactMethod === 'venmo' && styles.selectedContactMethodVenmoAccount,
+                            ]}
+                            onPress={() => setContactMethod('venmo')}
+                          >
+                           <Text style={styles.contactMethodText}>Venmo Account</Text>
+                           <Text style={styles.contactMethodSubtext}>
+                              (Enter {data.find((user) => user.userName === selectedPayerName)?.userName}'s Venmo account username instead)
+                             </Text>
+                  </TouchableOpacity>
+                  </View>
+
+                  {/* Venmo Input (Conditional) */}
+                  {contactMethod === 'venmo' ? (
+                    <View style={styles.venmoInputContainer}>
+                      <Text style={styles.venmoInputLabel}>
+                        Enter {data.find((user) => user.userName === selectedPayerName)?.userName}'s Venmo Username
+                      </Text>
+                      <View style={styles.inputWithCheck}>
+                          <TextInput
+                              style={[styles.venmoInput, styles.inputFill]}
+                              placeholder="Venmo Username"
+                              value={venmoUsernameInput}
+                              onChangeText={(text) => setVenmoUsernameInput(text)}
+                              placeholderTextColor="gray"
+                          />
+                          <TouchableOpacity
+                          style={styles.checkMarkContainer}
+                          onPress={() => {handleVenmoInfoChange(venmoUsernameInput, selectedPayerName); setVenmoUsernameInput('');}}
+                          >
+                           <AntDesign name="checksquareo" size={24} color="green" />
+                          </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
               )}
+
+
+
+              <View style={[styles.modalHorizontalLine, {marginTop: 16, width: '100%'}]}></View>
+
+              {/* Modal Title */}
+              <Text style={[styles.modalTitle, { marginTop: 14, marginBottom: 14 }]}>Choose an Action</Text>
+
+              {/* Group Chat Option */}
+              <View style={styles.radioContainer}>
+                <RadioButton
+                  value="groupChat"
+                  status={selectedAction === 'groupChat' ? 'checked' : 'unchecked'}
+                  onPress={() => {
+                    setSelectedAction('groupChat');
+                    sendGroupMessage();
+                  }}
+                />
+                <Text style={styles.radioLabel}>Send All Links via Group Chat</Text>
+              </View>
+
+              {/* Individual User Options */}
+              {data.filter(user => user.userName !== 'Self').map((user, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.radioContainer}
+                  onPress={() => {
+                    setSelectedAction(`individual-${user.userName}`);
+                    sendIndividualMessage(user);
+                  }}
+                >
+                  <RadioButton
+                    value={`individual-${user.userName}`}
+                    status={selectedAction === `individual-${user.userName}` ? 'checked' : 'unchecked'}
+                  />
+                  <Text style={styles.radioLabel}>Send Venmo Link to {user.userName}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-
-            <View style={[styles.modalHorizontalLine, {marginTop: 14, width: '100%'}]}></View>
-
-             {/* New Section: Contact Method Choice */}
-             {selectedOption && (
-  <View style={{width: '100%'}}>
-    <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.modalTitle, {marginTop: 14, width: '100%'}]}>
-      Choose{' '}
-      {data.find((user) => user.phoneNumber === selectedOption)?.userName}'s
-      Preference
-    </Text>
-    <View style={styles.contactMethodGrid}>
-      <TouchableOpacity
-        style={[
-          styles.contactMethodGridItem,
-          contactMethod === 'phone' && styles.selectedContactMethodPhoneNumber,
-        ]}
-        onPress={() => setContactMethod('phone')}
-      >
-        <Text style={styles.contactMethodText}>Phone Number</Text>
-        <Text style={styles.contactMethodSubtext}>
-          (Assume Phone number is associated with{' '}
-          {
-            data.find((user) => user.phoneNumber === selectedOption)?.userName
-          }'s Venmo)
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[
-          styles.contactMethodGridItem,
-          contactMethod === 'venmo' && styles.selectedContactMethodVenmoAccount,
-        ]}
-        onPress={() => setContactMethod('venmo')}
-      >
-        <Text style={styles.contactMethodText}>Venmo Account</Text>
-        <Text style={styles.contactMethodSubtext}>
-          (Enter{' '}
-          {
-            data.find((user) => user.phoneNumber === selectedOption)?.userName
-          }'s Venmo account username instead)
-        </Text>
-      </TouchableOpacity>
-    </View>
-    {(contactMethod === 'venmo' &&
-      data.find((user) => user.phoneNumber === selectedOption)?.userName ===
-        'Self') ? (
-      <View style={styles.venmoInputContainer}>
-        <Text style={[styles.venmoInputLabel, {fontSize: 12}]}>
-          Enter Your Venmo Username Below (To Change It)
-        </Text>
-        <View style={styles.inputWithCheck}>
-        <TextInput
-          style={[styles.venmoInput, styles.inputFill]}
-          placeholder="Venmo Username"
-          value={venmoUsernameInput}
-          onChangeText={(text) => {
-            setVenmoUsernameInput(text);
-            setVenmoUsername(text);
-          }}
-          placeholderTextColor="gray"
-        />
-        <TouchableOpacity
-          style={styles.checkMarkContainer}
-          onPress={() => {
-            Keyboard.dismiss();
-        
-            const selectedUser = data.find(
-              (user) => user.phoneNumber === selectedOption || user.userName === 'Self'
-            );
-        
-            if (selectedUser) {
-              let updatedData;
-        
-              if (selectedUser.userName === 'Self') {
-                // Always update 'Self' with venmoUsernameInput
-                updatedData = data.map((user) =>
-                  user.userName === 'Self'
-                    ? { ...user, phoneNumber: venmoUsernameInput }
-                    : user
-                );
-                setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
-              } else {
-                if (contactMethod === 'phone') {
-                  // Update phoneNumber in DATA1 if contactMethod is phone
-                  updatedData = data.map((user) =>
-                    user.phoneNumber === selectedOption
-                      ? { ...user, phoneNumber: venmoUsernameInput }
-                      : user
-                  );
-                  setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
-                } else {
-                  // No updates to DATA1; just update venmoUsername with the input
-                  setSelectedOption(selectedOption); // Updates venmoUsername to match venmoUsernameInput
-                }
-              }
-        
-              if (updatedData) {
-                // Update the state with the new DATA1
-                setData1(updatedData);
-              // Clear the venmoUsernameInput field after saving
-               setVenmoUsernameInput('');
-              }
-             
-            }
-          }}
-        >
-          <AntDesign name="checksquareo" size={24} color="green" />
-        </TouchableOpacity>
-        </View>
-      </View>
-    ) : contactMethod === 'venmo' ? (
-      <View style={styles.venmoInputContainer}>
-        <Text style={styles.venmoInputLabel}>
-          Enter{' '}
-          {
-            data.find((user) => user.phoneNumber === selectedOption)?.userName
-          }'s Venmo Username Below
-        </Text>
-        <View style={styles.inputWithCheck}> 
-        <TextInput
-            style={[styles.venmoInput, styles.inputFill]}
-            placeholder="Venmo Username"
-            value={venmoUsernameInput}
-            onChangeText={(text) => {
-              setVenmoUsernameInput(text);
-              setVenmoUsername(text);
-            }}
-            placeholderTextColor="gray"
-          />
-          <TouchableOpacity
-          style={styles.checkMarkContainer}
-          onPress={() => {
-            Keyboard.dismiss();
-        
-            const selectedUser = data.find(
-              (user) => user.phoneNumber === selectedOption || user.userName === selectedOption
-            );
-        
-            if (selectedUser) {
-              let updatedData;
-        
-                if (contactMethod === 'venmo') {
-                  // Update phoneNumber in DATA1 if contactMethod is phone
-                  updatedData = data.map((user) =>
-                    user.phoneNumber === selectedOption
-                      ? { ...user, phoneNumber: venmoUsernameInput }
-                      : user
-                  );
-                  setSelectedOption(venmoUsernameInput); // Update selectedOption to trigger useEffect
-                } else {
-                  // No updates to DATA1; just update venmoUsername with the input
-                  setSelectedOption(selectedOption); // Updates venmoUsername to match venmoUsernameInput
-                }
-              
-        
-              if (updatedData) {
-                // Update the state with the new DATA1
-                setData1(updatedData);
-              // Clear the venmoUsernameInput field after saving
-               setVenmoUsernameInput('');
-              }
-            }
-             
-            }}
-        >
-           <AntDesign name="checksquareo" size={24} color="green" />
           </TouchableOpacity>
-        </View>
-      </View>
-    ) : null}
-  </View>
-)}
-
-            <View style={[styles.modalHorizontalLine, {marginTop: 16, width: '100%'}]}></View>
-            {/* Modal Title */}
-            <Text style={[styles.modalTitle, { marginTop: 14, marginBottom: 14 }]}>Choose an Action</Text>
-            
-
-            {/* Group Chat Option */}
-            <View style={styles.radioContainer}>
-              <RadioButton
-                value="groupChat"
-                status={selectedOption === 'groupChat' ? 'checked' : 'unchecked'}
-                onPress={() => {
-                  setSelectedOption('groupChat');
-                  sendGroupMessage();
-                }}
-              />
-              <Text style={styles.radioLabel}>Send All Links via Group Chat</Text>
-            </View>
-
-          {/* Individual User Options */}
-          {data.filter(user => user.userName !== 'Self').map((user, index) => (
-            <TouchableOpacity 
-              key={index} 
-              style={styles.radioContainer} 
-              onPress={() => {
-                setSelectedOption(`individual-${user.userName}`);
-                sendIndividualMessage(user);
-              }}
-            >
-              <RadioButton
-                value={`individual-${user.userName}`}
-                status={selectedOption === `individual-${user.userName}` ? 'checked' : 'unchecked'}
-                // onPress={() => {}}  // Remove the onPress here since it's handled by the parent TouchableOpacity
-              />
-              <Text style={styles.radioLabel}>Send Venmo Link to {user.userName}</Text>
-            </TouchableOpacity>
-          ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
+        </Modal>
       </View>
     </View>
   );
@@ -1061,6 +1000,7 @@ export default function Breakdown() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null); // Track the selected radio button
   const [proportionalTax, setProportionalTax] = useState(false); // Add this state
+  const [selectedPayer, setSelectedPayer] = useState(null);
   const navigation = useNavigation();
 
   const toggleBottomBar = () => {
@@ -1127,6 +1067,10 @@ export default function Breakdown() {
       setData1={setData1}
       currency={currency}
       tax={tax}
+      proportionalTax={proportionalTax}
+      numUsers={data1.length}
+      selectedPayer={selectedPayer}
+      setSelectedPayer={setSelectedPayer}
     />
       <View style={{ flexGrow: 1}}>
         <FlatList  style={{flex: 1}}
