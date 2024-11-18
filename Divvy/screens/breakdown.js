@@ -10,11 +10,12 @@ import { useNavigation } from '@react-navigation/native'; // If using React Navi
 import * as SMS from 'expo-sms';
 
 // Fixed list of names
-const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden', 'William', 'Daniel', 'Sara', 'Alex', 'Mike'];
+// const names = ['Satrant', 'Luke', 'Charlie', 'Joey', 'Jaden', 'William', 'Daniel', 'Sara', 'Alex', 'Mike'];
 const currency = "$";  // Adding the currency constant
 
 const colors = {
   saleColor: 'red',
+  arithmeticColor: 'black',
   yourCostColor: 'green',
   backgroundColorBehindCard: '#b9c5ed', //Purple background old is #e1e8f3
   cardColor: '#fbfbfb',  //inside cards 
@@ -22,6 +23,7 @@ const colors = {
   highlightColor: '#d2edfd',
   taxColor: '#f19508',
   finalTotalColor: '#5289ef', 
+  finalTotalColorGreen: '#14702c',
   fadedHighlightColor: 'rgba(210, 237, 253, 0.3)',
 };
 
@@ -46,7 +48,7 @@ const calculateNetPrice = (storePrice, sale) => {
   return costAfterSale.toFixed(2);
 };
 
-const DATA1 = [
+// const DATA1 = [
 //   {
 //     userName: 'Self',
 //     phoneNumber: '9735580705',
@@ -99,7 +101,7 @@ const DATA1 = [
 //     { itemName: 'Gummy Glumper', storePrice: '14.00', split: [names[3]], sale: '0.25' },
 //   ],
 // },
-];
+// ];
  
 // const TAX = 4.50;
  
@@ -123,6 +125,56 @@ const getCategoryTotal = (data, category) => {
 // Helper function to get the first two letters of names and capitalize them
 const getSplitDisplayNames = (split) => {
   return split.map(name => name.substring(0, 2).toUpperCase());
+};
+
+const TaxRow = ({ totalSubtotal, userSubtotal, item, proportionalTax, tax, numUsers }) => {  // Receive data, tax, and currency as props
+
+if (!item || !item.items || !Array.isArray(item.items)) {
+    console.error("Invalid item data in TaxRow:", item);
+    return <Text>Invalid item data for TaxRow</Text>;
+  }
+
+  console.log("item data in TaxRow: "+ item);
+
+  // const userSubtotal = item.reduce((sum, i) =>  // item.items is the correct array here
+  //   sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
+  //   0
+  // );
+
+// const totalSubtotal = item.items.reduce((sum, user) => { // added check
+//   if (!user || !user.items || !Array.isArray(user.items)) { // added check
+//       console.error("Invalid user data in TaxRow:", user);
+//       return sum; // added check
+//   }
+//   return sum + user.items.reduce((itemSum, i) =>
+//       itemSum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
+//       0),
+//   0);
+//   };
+
+const userTax = proportionalTax ?
+  (userSubtotal / totalSubtotal) * tax :
+  (tax / numUsers); 
+
+
+return (
+    <View style={styles.row}>
+        <View style={[styles.adjustedWidthContainer, {minWidth: 300, maxWidth: 300}]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <Text style={[styles.itemText, styles.boldText]} numberOfLines={1}>
+                    <Text style={styles.bulletPoint}>•</Text> {proportionalTax ? `Tax (${((userSubtotal / totalSubtotal) * 100).toFixed(2)}%)` : `Tax (${((1/numUsers) * 100).toFixed(0)}%)`}
+                </Text>
+            </ScrollView>
+        </View>
+        <View style={styles.rightContainerV2}>
+            <View style={[styles.yourTaxContainer, {marginLeft: Dimensions.get('window').width*-.25}]}>
+                <Text style={[styles.yourCostText, { color: colors.taxColor }]}>
+                   {userTax.toFixed(2)} {/* Display calculated tax with currency */}
+                </Text>
+            </View>
+        </View>
+    </View>
+);
 };
  
 const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected,  userName, toggleSelect, currency }) => {
@@ -271,69 +323,115 @@ const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected
   );
 };
  
-const BreakdownRow = ({ data, isExpanded, toggleShowMore, netPriceIsSelected }) => {
+const BreakdownRow = ({ numUsers, item, userSubtotal, totalSubtotal, isExpanded, toggleShowMore, netPriceIsSelected, proportionalTax, tax, currency }) => {
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
-  const totalYourCost = data.items.reduce((sum, item) => {
-    const itemCost = parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
-    return sum + itemCost;
-  }, 0).toFixed(2);
+  if (!item || !item.items || !Array.isArray(item.items)) {
+    return <Text>No items to display for {item?.userName || "Unknown User"}.</Text>;
+  }
 
-return (
-  <View style={styles.row}>
-    <View style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 0,
-    }}>
-      <View style={styles.buttonContainerInBreakdown}>
-      <TouchableOpacity style={[styles.expandButton, { width: 60 }]} onPress={toggleShowMore} activeOpacity={1}> 
-        <AntDesign name={isExpanded ? 'up' : 'down'} size={15} color="white" /> 
-        </TouchableOpacity>
+  console.log("data for BreakdownRow:", item);
+
+  const userTax = proportionalTax ?
+      (userSubtotal / totalSubtotal) * tax :
+      (tax / numUsers);
+
+  const totalYourCost = userSubtotal + userTax;
+
+  const toggleBreakdown = () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setShowBreakdown(!showBreakdown);
+  };
+
+  //Helper functions for BreakdownRow
+    const getCategoryTotal = (items, category) => { // Use items directly
+        let total = 0;
+        items.forEach(item => { // Iterate through items
+            if (category === 'storePrice') {
+                total += parseFloat(item.storePrice);
+            } else if (category === 'yourCost') {
+                // If yourCost is available directly in the item object
+                total += parseFloat(item.yourCost || calculateYourCost(item.storePrice, item.sale, item.split)); // Use calculateYourCost if yourCost not found
+            } else if (category === 'sale') {
+                total += parseFloat(item.sale);
+            }
+        });
+        return total.toFixed(2);
+    };
+  
+
+  return (
+      <View style={styles.row}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 0 }}>
+              <View style={styles.buttonContainerInBreakdown}>
+                  <TouchableOpacity style={[styles.expandButton, { width: 60 }]} onPress={toggleShowMore} activeOpacity={1}>
+                      <AntDesign name={isExpanded ? 'up' : 'down'} size={15} color="white" />
+                  </TouchableOpacity>
+              </View>
+              {netPriceIsSelected ? (
+                  <>
+                      <View style={styles.breakdownTotalContainer}>
+                          <Text style={styles.breakdownTotalText}>Totals:</Text>
+                      </View>
+                      <View style={styles.rightContainer}>
+                          <View style={styles.breakdownStoreContainer}>
+                              <Text style={styles.breakdownStoreText}>
+                                  {currency}{getCategoryTotal(item.items, 'storePrice')} {/* Assuming getCategoryTotal is defined */}
+                              </Text>
+                          </View>
+                          <View style={styles.breakdownSaleContainer}>
+                              <Text style={styles.breakdownSaleText}>
+                                  -{currency}{getCategoryTotal(item.items, 'sale')} {/* Assuming getCategoryTotal is defined */}
+                              </Text>
+                          </View>
+                          <View style={styles.breakdownCostContainer}>
+                              <Text style={styles.breakdownCostText}>
+                                  {currency}{totalYourCost.toFixed(2)} 
+                              </Text>
+                          </View>
+                      </View>
+                  </>
+              ) : (
+                  <>
+                      <View style={styles.breakdownTotalContainer}>
+                          <Text style={styles.breakdownTotalText}>Total: </Text>
+                      </View>
+                      <TouchableOpacity onPress={toggleBreakdown} style={styles.touchableTotal} activeOpacity={1}>
+                          <Text style={[styles.clickableText, styles.breakdownCostText, {marginLeft: Dimensions.get('window').width*.393, color: colors.finalTotalColorGreen }]}>
+                              {currency}{totalYourCost.toFixed(2)}
+                          </Text>
+                      </TouchableOpacity>
+                      {showBreakdown && (
+                          <View style={styles.breakdownDetailsContainer}>
+                              <View style={[styles.breakdownCostContainerAdjusted, {marginLeft: Dimensions.get('window').width*-0.53, width: Dimensions.get('window').width * 0.15 }]}>
+                                  <Text style={styles.breakdownCostText}>
+                                      {currency}{userSubtotal.toFixed(2)}
+                                  </Text>
+                              </View>
+                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.048, width: Dimensions.get('window').width * 0.15 }]}>
+                                  <Text style={[styles.breakdownCostText, { color: colors.arithmeticColor }]}>+</Text>
+                              </View>
+
+                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.064, width: Dimensions.get('window').width * 0.15 }]}>
+                                  <Text style={[styles.breakdownCostText, { color: colors.taxColor }]}>{currency}{userTax.toFixed(2)}</Text>
+                              </View>
+
+                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.062, width: Dimensions.get('window').width * 0.15 }]}>
+                                  <Text style={[styles.breakdownCostText, { color: colors.arithmeticColor }]}>=</Text>
+                              </View>
+                          </View>
+                      )}
+                  </>
+              )}
+          </View>
       </View>
-      {netPriceIsSelected ? (
-         <>
-      <View style={styles.breakdownTotalContainer}> 
-        <Text style={styles.breakdownTotalText}>Totals:</Text>
-      </View>
-    <View style={styles.rightContainer}>
-    <View style={styles.breakdownStoreContainer}>
-        <Text style={styles.breakdownStoreText}>
-          {currency}{getCategoryTotal(data, 'storePrice')}
-        </Text>
-      </View>
-      <View style={styles.breakdownSaleContainer}>
-        <Text style={styles.breakdownSaleText}>
-         {'-'}{currency}{getCategoryTotal(data, 'sale')}
-        </Text>
-      </View>
-      <View style={styles.breakdownCostContainer}>
-        <Text style={styles.breakdownCostText}>
-          {currency}{totalYourCost} 
-        </Text>
-      </View>
-      </View>
-      </>
-      ) : (
-      <>
-      <View style={styles.breakdownTotalContainer}> 
-        <Text style={styles.breakdownTotalText}>Total Balance:</Text>
-      </View>
-      <View style={styles.breakdownCostContainerAdjusted}>
-        <Text style={styles.breakdownCostText}>
-          {currency}{totalYourCost} 
-        </Text>
-      </View>
-      </>
-      )}
-    </View>
-  </View>
   );
 };
+
  
-const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax}) => {
-  const [proportionalTax, setProportionalTax] = useState(false);
+const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax, proportionalTax, setProportionalTax}) => {
   const numUsers = data.length;
-  const totalTax = tax;
+  const totalTax = tax; 
   const totalSubtotal = data.reduce((sum, user) => sum + user.items.reduce((itemSum, item) => itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)), 0), 0).toFixed(2);
 
   const calculateUserTax = (userSubtotal) => {
@@ -428,10 +526,16 @@ const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax})
   );
 };
  
-const Container = ({ data, selectedItem, toggleSelectItem }) => {
+const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax, numUsers, totalSubtotal }) => {
   const [expanded, setExpanded] = useState(false);
   const [netPriceIsSelected, setNetPriceIsSelected] = useState(false); // Add netPriceIsSelected state
   // Toggle show more/less
+  console.log("item for Container:" + item);
+    // IMPORTANT: Check the structure of item and item.items!
+    if (!item || !item.items || !Array.isArray(item.items)) {
+      console.error("Invalid item data in Container:", item);  // Log the problematic item
+      return <Text>Invalid item data for {item?.userName || "Unknown User"}</Text>;
+    }
   const toggleShowMore = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); // <-- LayoutAnimation here
     setExpanded(prev => !prev);
@@ -447,12 +551,28 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
       setNetPriceIsSelected(prev => !prev);
     };
 
+    // const numUsers = data.length;
+    const totalTax = tax;
+
+  // const totalSubtotal = item.items.reduce((sum, i) => // changed to i from item
+  //     sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)), 0).toFixed(2);
+
+  const userSubtotal = item.items.reduce((sum, i) =>
+      sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
+      0
+  );
+
+  
+  // const userTax = (userSubtotal / parseFloat(totalSubtotal)) * totalTax; // is this used?
+    // const formattedUserTax = userTax.toFixed(2); // Format to two decimal places
+
+
   return (
 
       <View style={styles.innerContainer}>
         <View style={styles.headerContainer}>
           <View style={styles.userNameContainer}>
-            <Text style={styles.userNameText}>{data.userName}</Text>
+            <Text style={styles.userNameText}>{item.userName}</Text>
           </View>
   
           {netPriceIsSelected ? (
@@ -488,31 +608,40 @@ const Container = ({ data, selectedItem, toggleSelectItem }) => {
         </View>
 
          {/* Display data rows */}
-         {data.items.slice(0, expanded ? data.items.length : 3).map((item, index) => (
+         {item.items.slice(0, expanded ? item.items.length : 3).map((i, index) => (
           <Row
             key={index}
-            itemName={item.itemName}
-            storePrice={item.storePrice}
+            itemName={i.itemName}
+            storePrice={i.storePrice}
             // yourCost={item.yourCost}
-            split={item.split}
-            sale={item.sale === undefined ? 0.00 : item.sale}
-            isSelected={selectedItem === item.itemName} // Pass selectedItem state
+            split={i.split}
+            sale={i.sale === undefined ? 0.00 : i.sale}
+            isSelected={selectedItem === i.itemName} // Pass selectedItem state
             toggleSelect={toggleSelectItem} // Pass toggleSelectItem function
             netPriceIsSelected={netPriceIsSelected}
+            userName = {item.userName}
           />
         ))}
 
+        <TaxRow 
+        item={item}
+        tax={tax} 
+        numUsers={numUsers} 
+        userSubtotal={userSubtotal}
+        totalSubtotal={totalSubtotal}
+        proportionalTax={proportionalTax} // Pass the percentage as a string
+      />
         {/* Horizontal line above BreakdownRow */}
         <View style={styles.horizontalLine} />
 
         {/* Display Breakdown row with calculated values */}
-        <BreakdownRow data={data} isExpanded={expanded} toggleShowMore={toggleShowMore} netPriceIsSelected={netPriceIsSelected}/>
+        <BreakdownRow numUsers={numUsers} userSubtotal={userSubtotal} totalSubtotal={totalSubtotal} currency={currency} tax={tax} item={item} isExpanded={expanded} toggleShowMore={toggleShowMore} netPriceIsSelected={netPriceIsSelected} proportionalTax={proportionalTax}/>
       </View>
     
   );
 };
  
-const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMessageButton, setModalVisible, setSelectedOption, DATA1, setData1, currency, tax }) => {
+const NavigationBar = ({ totalSubtotal, data, title, modalVisible, selectedOption, closeModal, soloMessageButton, setModalVisible, setSelectedOption, setData1, currency, tax }) => {
   const [dropdownVisible, setDropdownVisible] = React.useState(false);
   const [contactMethod, setContactMethod] = useState(null);
   const [venmoUsernameInput, setVenmoUsernameInput] = useState('');
@@ -523,7 +652,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
 
   useEffect(() => {
     if (selectedOption) {
-        const selectedUser = DATA1.find(user => user.phoneNumber === selectedOption);
+        const selectedUser = data.find(user => user.phoneNumber === selectedOption);
         if (selectedUser) {
             if (contactMethod === 'phone') {
                 setVenmoUsername(selectedUser.phoneNumber);
@@ -531,16 +660,17 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
                 setVenmoUsername(venmoUsernameInput); // Use input for Venmo
             }
         }
-    // } else if (!selectedOption || selectedOption === 'Self') {
+    } 
+    // else if (!selectedOption || selectedOption === 'Self') {
     //     // Reset or set to "Self"
     //     if (contactMethod === 'venmo') {
     //         setVenmoUsername(venmoUsernameInput);
     //     } else {
     //         setVenmoUsername('');
     //     }
-    }
+    // }
 
-}, [selectedOption, contactMethod, venmoUsernameInput, DATA1]);
+}, [selectedOption, contactMethod, venmoUsernameInput, data]);
 
   // Function to go back
   const handleGoBack = () => {
@@ -549,36 +679,29 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
   };
 
   // Example of calculateOwedAmount function
-  const calculateOwedAmount = (userName, data = DATA1, tax1 = tax) => {
+  const calculateOwedAmount = (userName, data, tax) => {
     const user = data.find(u => u.userName === userName);
     if (!user) {
         console.error("User not found:", userName);
         return 0;
     }
 
-    const totalSubtotal = data.reduce((sum, user) =>
-        sum + user.items.reduce((itemSum, item) =>
-            itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)),
-            0
-        ), 0);
+    // const totalSubtotal = data.reduce((sum, user) =>
+    //     sum + user.items.reduce((itemSum, item) =>
+    //         itemSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)),
+    //         0
+    //     ), 0);
 
-    console.log('Total Subtotal:', totalSubtotal);
+    // console.log('Total Subtotal:', totalSubtotal);
 
     const userSubtotal = user.items.reduce((sum, item) => {
         const cost = parseFloat(calculateYourCost(item.storePrice, item.sale, item.split));
         console.log('Item cost:', item.itemName, cost);
         return sum + cost;
     }, 0);
-
     
     // Calculate tax proportion
     const userTax = (userSubtotal / totalSubtotal) * tax;
-
-    // console.log('User Subtotal:', userSubtotal);
-    // console.log('Tax:', tax1);
-
-    // console.log('User Tax:', userTax);
-
     return (userSubtotal + userTax).toFixed(2);
 };
 
@@ -590,7 +713,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
   const sendIndividualMessage = async (user) => {
     const owedAmount = calculateOwedAmount(user.userName);
     const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
-    const message = `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}`;
+    const message = `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}. Thanks for using Divvy!`;
 
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
@@ -605,15 +728,17 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
   const sendGroupMessage = async () => {
     let combinedMessage = '';
 
-    for (const user of DATA1) {
+    for (const user of data) {
       const owedAmount = calculateOwedAmount(user.userName);
       const venmoLink = createVenmoLink(owedAmount, `Grocery Bill for ${user.userName}`);
       combinedMessage += `Hey ${user.userName}, you owe $${owedAmount}. Click the link to pay me on Venmo: ${venmoLink}\n\n`;
     }
 
+    combinedMessage+= `Thanks for using Divvy!`;
+
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
-      await SMS.sendSMSAsync(DATA1.map(user => user.phoneNumber), combinedMessage);  // Send to multiple numbers
+      await SMS.sendSMSAsync(data.map(user => user.phoneNumber), combinedMessage);  // Send to multiple numbers
     } else {
       alert('SMS not available');
       // Handle what to do if SMS isn't available, maybe open a single Venmo link?
@@ -621,7 +746,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
     setModalVisible(false);
   };
   // Load Venmo icon
-  const VenmoIcon = require('../assets/Venmo_Logo_App.png'); //. for local ..for in Divvy
+  const VenmoIcon = require('../assets/Venmo_Logo_App.png');
   const VenmoIconComponent = <Image source={VenmoIcon} style={styles.venmoIcon} resizeMode="contain" />;
 
     // Custom RadioButton component
@@ -666,14 +791,14 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
             <View style={[styles.dropdownContainer, {}]}>
               <TouchableOpacity onPress={() => setDropdownVisible(!dropdownVisible)} style={styles.dropdownButton}>
                 <Text style={styles.dropdownButtonText}>
-                  {selectedOption ? DATA1.find(user => user.phoneNumber === selectedOption)?.userName + ' - ' + DATA1.find(user => user.phoneNumber === selectedOption)?.phoneNumber
+                  {selectedOption ? data.find(user => user.phoneNumber === selectedOption)?.userName + ' - ' + data.find(user => user.phoneNumber === selectedOption)?.phoneNumber
  : 'Select a Person'}
                 </Text>
                 <AntDesign name={dropdownVisible ? 'up' : 'down'} size={16} color="#007BFF" />
               </TouchableOpacity>
               {dropdownVisible && (
                 <View style={styles.dropdownMenu}>
-                {DATA1.map((user, index) => (
+                {data.map((user, index) => (
                   <View key={index}>
                     <TouchableOpacity
                       style={[
@@ -700,7 +825,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
                         <Text style={styles.dropdownMenuItemText}>{user.userName}</Text>
                       )}
                     </TouchableOpacity>
-                    {index < DATA1.length - 1 && <View style={styles.separator} />}
+                    {index < data.length - 1 && <View style={styles.separator} />}
                   </View>
                 ))}
               </View>
@@ -711,11 +836,11 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
 
              {/* New Section: Contact Method Choice */}
              {selectedOption && (
-  <View>
-    <Text style={[styles.modalTitle, { marginTop: 14, width: '100%', overflow: 'scroll'}]}>
+  <View style={{width: '100%'}}>
+    <Text numberOfLines={2} ellipsizeMode="tail" style={[styles.modalTitle, {marginTop: 14, width: '100%'}]}>
       Choose{' '}
-      {DATA1.find((user) => user.phoneNumber === selectedOption)?.userName}'s
-      Venmo Preference
+      {data.find((user) => user.phoneNumber === selectedOption)?.userName}'s
+      Preference
     </Text>
     <View style={styles.contactMethodGrid}>
       <TouchableOpacity
@@ -729,7 +854,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
         <Text style={styles.contactMethodSubtext}>
           (Assume Phone number is associated with{' '}
           {
-            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+            data.find((user) => user.phoneNumber === selectedOption)?.userName
           }'s Venmo)
         </Text>
       </TouchableOpacity>
@@ -744,13 +869,13 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
         <Text style={styles.contactMethodSubtext}>
           (Enter{' '}
           {
-            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+            data.find((user) => user.phoneNumber === selectedOption)?.userName
           }'s Venmo account username instead)
         </Text>
       </TouchableOpacity>
     </View>
     {(contactMethod === 'venmo' &&
-      DATA1.find((user) => user.phoneNumber === selectedOption)?.userName ===
+      data.find((user) => user.phoneNumber === selectedOption)?.userName ===
         'Self') ? (
       <View style={styles.venmoInputContainer}>
         <Text style={[styles.venmoInputLabel, {fontSize: 12}]}>
@@ -772,7 +897,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
           onPress={() => {
             Keyboard.dismiss();
         
-            const selectedUser = DATA1.find(
+            const selectedUser = data.find(
               (user) => user.phoneNumber === selectedOption || user.userName === 'Self'
             );
         
@@ -781,7 +906,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
         
               if (selectedUser.userName === 'Self') {
                 // Always update 'Self' with venmoUsernameInput
-                updatedData = DATA1.map((user) =>
+                updatedData = data.map((user) =>
                   user.userName === 'Self'
                     ? { ...user, phoneNumber: venmoUsernameInput }
                     : user
@@ -790,7 +915,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
               } else {
                 if (contactMethod === 'phone') {
                   // Update phoneNumber in DATA1 if contactMethod is phone
-                  updatedData = DATA1.map((user) =>
+                  updatedData = data.map((user) =>
                     user.phoneNumber === selectedOption
                       ? { ...user, phoneNumber: venmoUsernameInput }
                       : user
@@ -821,7 +946,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
         <Text style={styles.venmoInputLabel}>
           Enter{' '}
           {
-            DATA1.find((user) => user.phoneNumber === selectedOption)?.userName
+            data.find((user) => user.phoneNumber === selectedOption)?.userName
           }'s Venmo Username Below
         </Text>
         <View style={styles.inputWithCheck}> 
@@ -840,7 +965,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
           onPress={() => {
             Keyboard.dismiss();
         
-            const selectedUser = DATA1.find(
+            const selectedUser = data.find(
               (user) => user.phoneNumber === selectedOption || user.userName === selectedOption
             );
         
@@ -849,7 +974,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
         
                 if (contactMethod === 'venmo') {
                   // Update phoneNumber in DATA1 if contactMethod is phone
-                  updatedData = DATA1.map((user) =>
+                  updatedData = data.map((user) =>
                     user.phoneNumber === selectedOption
                       ? { ...user, phoneNumber: venmoUsernameInput }
                       : user
@@ -898,7 +1023,7 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
             </View>
 
           {/* Individual User Options */}
-          {DATA1.filter(user => user.userName !== 'Self').map((user, index) => (
+          {data.filter(user => user.userName !== 'Self').map((user, index) => (
             <TouchableOpacity 
               key={index} 
               style={styles.radioContainer} 
@@ -926,16 +1051,18 @@ const NavigationBar = ({ title, modalVisible, selectedOption, closeModal, soloMe
 // FlatList in the main App
 export default function Breakdown() {
   const route = useRoute();
-  const initialData = route.params?.updatedData || DATA1; // Get data from route params
+  const initialData = route.params?.updatedData; // Get data from route params removed []
+  console.log("initialData:" + initialData);
   const [data1, setData1] = useState(initialData); // Store in state
-  const [tax, setTax] = useState(0);
+  const [tax, setTax] = useState(tax);
   const [selectedItem, setSelectedItem] = useState(null); // Track which row is selected
   const [selectedUserName, setSelectedUserName] = useState(null)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null); // Track the selected radio button
+  const [proportionalTax, setProportionalTax] = useState(false); // Add this state
   const navigation = useNavigation();
- 
+
   const toggleBottomBar = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsBottomBarExpanded(prev => !prev);
@@ -961,13 +1088,31 @@ export default function Breakdown() {
   };
 
   useEffect(() => {
-    if (initialData && initialData.receiptEndVariables) { // Check for existence
-      setTax(parseFloat(initialData.receiptEndVariables.tax));
+    if (initialData && Array.isArray(initialData)) {  // Check if it's an array
+      setData1(initialData);
+  
+      if (initialData.receiptEndVariables && initialData.receiptEndVariables.tax) {
+        setTax(parseFloat(initialData.receiptEndVariables.tax));
+      } else {
+        console.warn("Tax data not found in initialData.receiptEndVariables");
+      }
+    } else {
+      console.warn("Initial data is invalid or empty:", initialData);
+      setData1([]); // Set a default empty array
     }
-  }, [initialData]); // Run effect when initialData changes
+  }, [initialData]);
+
+  const totalSubtotal = data1.reduce((sum, user) => {
+    if (!user || !user.items || !Array.isArray(user.items)) { // check user data integrity
+        console.error("Invalid user data in totalSubtotal calculation:", user);
+        return sum;
+      }
+      return sum + user.items.reduce((userSum, item) =>
+        userSum + parseFloat(calculateYourCost(item.storePrice, item.sale, item.split)), 0
+      );
+  }, 0);
 
   return (
-
     <View style={styles.pageBackground}>
     <NavigationBar 
       title="Payment Summary" 
@@ -977,7 +1122,8 @@ export default function Breakdown() {
       soloMessageButton={soloMessageButton} 
       setModalVisible={setModalVisible} 
       setSelectedOption={setSelectedOption}
-      DATA1={data1}
+      data={data1}
+      totalSubtotal={totalSubtotal}
       setData1={setData1}
       currency={currency}
       tax={tax}
@@ -987,10 +1133,15 @@ export default function Breakdown() {
           data={data1} // Use the DATA array
           renderItem={({ item }) => (
             <Container
-              data={item}
+              item={item}
+              numUsers={data1.length}
               selectedItem={selectedItem}
               toggleSelectItem={(itemName) => toggleSelect(itemName, item.userName)}  // Pass userName to toggleSelect
               keyExtractor={(item) => item.userName} // Key by userName
+              currency={currency}
+              proportionalTax={proportionalTax}
+              tax={tax}
+              totalSubtotal={totalSubtotal}
             />
           )}
           keyExtractor={(item) => item.userName} // Key by userName
@@ -999,12 +1150,13 @@ export default function Breakdown() {
         </View>
         <BottomBar 
                   data={data1}
-                  tax={tax}
                   isBottomBarExpanded={isBottomBarExpanded} 
                   toggleBottomBar={toggleBottomBar} 
+                  proportionalTax={proportionalTax} // Added missing prop here
+                  setProportionalTax={setProportionalTax} // added this 
+                  tax={tax}
               />
       </View>
-      
   );
 };
  
@@ -1119,6 +1271,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
+  yourTaxContainer: {
+    marginLeft: 0,
+    // width: 50,
+    width: Dimensions.get('window').width*.383,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
   yourCostContainerAdjusted: {
     marginLeft: Dimensions.get('window').width*-0.005,
     // width: 50,
@@ -1172,7 +1331,7 @@ const styles = StyleSheet.create({
   netPriceHeaderContainer: {
     width: Dimensions.get('window').width*.16,
     // marginLeft: 4,
-    marginLeft: Dimensions.get('window').width*.115,
+    marginLeft: Dimensions.get('window').width*.045,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1204,7 +1363,7 @@ const styles = StyleSheet.create({
     // width: 40,
     width: Dimensions.get('window').width*.10,
     // marginLeft: 17,
-    marginLeft: Dimensions.get('window').width*.015,
+    marginLeft: Dimensions.get('window').width*-0.055,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1265,7 +1424,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userNameContainer: {
-    width: 150,
+    width: 180,
     justifyContent: 'center',
     paddingLeft: 10,
   },
@@ -1626,13 +1785,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',  // Distribute items evenly
     marginTop: -6,
-    alignItems: 'flex-start'
+    alignItems: 'flex-start',
+    width: '100%', 
   },
   contactMethodGridItem: {
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 5,
     borderRadius: 10,
+    // width: '100%',
+    height: 90,
     flex: 1, // Take up equal width
     marginHorizontal: 3,  // Small spacing between items
     alignItems: 'center', // Center text vertically and horizontally
@@ -1690,6 +1852,10 @@ checkMarkContainer: {
   top: '50%',             // Vertically center 
   transform: [{ translateY: -12 }], // Adjust for icon size
   zIndex: 1,          // Ensure it's above other elements
+},
+breakdownDetailsContainer: {
+  flexDirection: 'row', // Align breakdown details in a row
+  marginLeft: Dimensions.get('window').width*0.005,
 },
 });
 
