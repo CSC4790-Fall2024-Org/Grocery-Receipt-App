@@ -252,7 +252,7 @@ export default function DetailsScreen({ route, navigation }) {
     updatedData.receiptEndVariables = receiptEndVariables;
     navigation.navigate('Breakdown', { updatedData });
     // console.log(updatedData);
-    // console.log(receiptEndVariables);
+    console.log(receiptEndVariables);
   };
 
   const EditItemModal = ({ item, onSave, onCancel }) => {

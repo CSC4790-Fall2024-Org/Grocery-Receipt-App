@@ -989,11 +989,7 @@ const createVenmoLink = (amount, note, recipient) => { // Add recipient argument
  
 // FlatList in the main App
 export default function Breakdown() {
-  const route = useRoute();
-  const initialData = route.params?.updatedData; // Get data from route params removed []
-  console.log("initialData:" + initialData);
-  const [data1, setData1] = useState(initialData); // Store in state
-  const [tax, setTax] = useState(tax);
+  const route = useRoute();  
   const [selectedItem, setSelectedItem] = useState(null); // Track which row is selected
   const [selectedUserName, setSelectedUserName] = useState(null)
   const [isBottomBarExpanded, setIsBottomBarExpanded] = useState(false);
@@ -1002,6 +998,22 @@ export default function Breakdown() {
   const [proportionalTax, setProportionalTax] = useState(false); // Add this state
   const [selectedPayer, setSelectedPayer] = useState(null);
   const navigation = useNavigation();
+
+  const initialData = route.params?.updatedData;
+
+if (!initialData || !initialData.receiptEndVariables) {
+    return (
+      <View>
+        <Text>Loading...</Text> 
+      </View>
+    );
+  }
+
+const { subtotal, tax: initialTax, total } = initialData.receiptEndVariables; // Rename to initialTax
+const [tax, setTax] = useState(initialTax); // Use initialTax here
+const [data1, setData1] = useState(initialData);
+
+console.log("initialData:" + initialData);
 
   const toggleBottomBar = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
