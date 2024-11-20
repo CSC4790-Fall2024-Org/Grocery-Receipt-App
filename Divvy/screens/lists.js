@@ -156,6 +156,16 @@ export default function DetailsScreen({ route, navigation }) {
       )
     })));
   };
+  const handleSelectAllForContributor = (contributor, isChecked) => {
+    setData(prevData => {
+      return prevData.map(item => ({
+        ...item,
+        selectedContributors: isChecked 
+          ? [...new Set([...item.selectedContributors, contributor])] // Add contributor if checked
+          : item.selectedContributors.filter(c => c !== contributor)  // Remove contributor if unchecked
+      }));
+    });
+  };
   const handleSaveEdit = (newPrice, newDiscount) => {
     const updatedData = [...data];
     updatedData[editingItemIndex] = {
@@ -440,32 +450,42 @@ export default function DetailsScreen({ route, navigation }) {
         </Modal>
       </View>
 
-      <View style={styles.totalsContainer}>
-        <Text style={styles.totalsHeader}>Contributor Totals:</Text>
-        {contributors.map((contributor) => (
-        <View key={contributor} style={styles.contributorRow}>
-          <Text style={styles.contributorName}>{contributor}</Text>
-          <View style={styles.rightContainer}>
-            <Text style={styles.contributorTotal}>
-              ${(contributorTotals[contributor] || 0).toFixed(2)}
-            </Text>
-            <TouchableOpacity 
-              onPress={() => deleteContributor(contributor)}
-              style={styles.deleteButton}
-            >
-              <AntDesign name="close" size={20} color="red" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ))}
-
-
-
-
-        <TouchableOpacity onPress={handleViewSummary}>
-          <Text style={styles.summButton}>View Summary</Text>
+  <View style={styles.totalsContainer}>
+  <Text style={styles.totalsHeader}>Contributor Totals:</Text>
+  {contributors.map((contributor) => (
+    <View key={contributor} style={styles.contributorRow}>
+      <View style={styles.leftContainer}>
+      <Text style={styles.contributorName}>{contributor}</Text>
+      <BouncyCheckbox
+      size={20}
+      fillColor="#4F65B1"
+      unfillColor="#FFFFFF"
+      iconStyle={{ borderColor: "#2196F3" }}
+      textStyle={{ fontSize: 14, color: '#323232', textDecorationLine: 'none' }}
+      text="Select All"
+      onPress={(isChecked) => handleSelectAllForContributor(contributor, isChecked)}
+    />
+        
+      </View>
+      <View style={styles.rightContainer}>
+        <Text style={styles.contributorTotal}>
+          ${(contributorTotals[contributor] || 0).toFixed(2)}
+        </Text>
+        <TouchableOpacity 
+          onPress={() => deleteContributor(contributor)}
+          style={styles.deleteButton}
+        >
+          <AntDesign name="close" size={20} color="red" />
         </TouchableOpacity>
       </View>
+    </View>
+  ))}
+  <TouchableOpacity onPress={handleViewSummary}>
+    <Text style={styles.summButton}>View Summary</Text>
+  </TouchableOpacity>
+</View>
+
+
     </>
   );
 }
@@ -476,15 +496,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
+    paddingVertical: 3,
   },
   contributorName: {
     fontSize: 16,
-    flex: 1, // This will allow the name to take up available space
+    paddingHorizontal: 5,
+    marginRight: 10,
+  
+    // marginLeft: 8,
+    // flex: 1, // This will allow the name to take up available space
   },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10, // Adds space between the amount and X button
+  },
+  leftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   contributorTotal: {
     fontSize: 16,
