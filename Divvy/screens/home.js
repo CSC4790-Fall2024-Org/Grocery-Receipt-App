@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     height: '50%',             // Cover the entire height of the screen
     alignItems: 'center',
     justifyContent: 'center',                  
-    zIndex: -1,                 // Push it behind everything else
+    zIndex: 0,                 // Push it behind everything else
     opacity: 0.75,
   },
   uploadButtonText: {
