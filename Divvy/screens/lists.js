@@ -481,7 +481,7 @@ export default function DetailsScreen({ route, navigation }) {
     </View>
   ))}
   <TouchableOpacity onPress={handleViewSummary}>
-    <Text style={styles.summButton}>View Summary</Text>
+    <Text style={styles.summButton}>View Summary & Pay</Text>
   </TouchableOpacity>
 </View>
 
@@ -496,12 +496,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 3,
+    paddingVertical: 2,
   },
   contributorName: {
     fontSize: 16,
     paddingHorizontal: 5,
     marginRight: 10,
+    width: 120,
   
     // marginLeft: 8,
     // flex: 1, // This will allow the name to take up available space
@@ -613,11 +614,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',         // Bold text
     fontSize: 16,               // Adjust font size if needed
   },  
-  summButton:{
+  summButton: {
     fontSize: 18,
-    color: '#000', // Black text
+    color: '#FFFFFF', // Changed to white text
     fontWeight: 'bold',
-  },
+    backgroundColor: '#4F65B1', 
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 2,
+    marginBottom: 1,
+    textAlign: 'center',
+    width: '50%', 
+},
   container: {
     flex: 1,
     padding: 10,
