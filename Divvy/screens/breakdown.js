@@ -71,39 +71,7 @@ const calculateNetPrice = (storePrice, sale) => {
 //       { itemName: 'Reeces Thins', storePrice: '10.00', split: [names[6], names[0], names[0], names[0], names[0]], sale: '1.50' }
 //     ],
 // },
-// {
-//   userName: 'Charlie',  // New user
-//   phoneNumber: '9048641301',
-//   items: [
-//     { itemName: '2% Milk', storePrice: '5.00', split: [names[1], names[2]], sale: '1.00' },
-//     { itemName: 'Non-Pasturized Milk', storePrice: '4.00', split: [names[3]], sale: '0.75' },
-//     { itemName: 'Goat Milk', storePrice: '3.00', split: [names[3]], sale: '0.55' },
-//     { itemName: 'Sheep Milk', storePrice: '2.00', split: [names[3]], sale: '0.25' },
-//   ],
-// },
-// {
-//   userName: 'Joey',  // New user
-//   phoneNumber: '020-000-0000',
-//   items: [
-//     { itemName: 'Dairy-Free Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '0.00' },
-//     { itemName: 'Gluten-Free Bread', storePrice: '4.00', split: [names[3]], sale: '0.75' },
-//     { itemName: 'DF & GF Bars', storePrice: '18.00', split: [names[3]], sale: '0.55' },
-//     { itemName: 'White Rice', storePrice: '40.00', split: [names[3]], sale: '0.25' },
-//   ],
-// },
-// {
-// userName: 'Daniel',  // New user
-// phoneNumber: '2037527960',
-//   items: [
-//     { itemName: 'Shredded Cheese', storePrice: '8.00', split: [names[1], names[2]], sale: '1.00' },
-//     { itemName: '3x Chicken Cutlets', storePrice: '20.00', split: [names[3]], sale: '0.75' },
-//     { itemName: 'Liquid Egg Whites', storePrice: '18.00', split: [names[3]], sale: '0.55' },
-//     { itemName: 'Gummy Glumper', storePrice: '14.00', split: [names[3]], sale: '0.25' },
-//   ],
-// },
 // ];
- 
-// const TAX = 4.50;
  
 // Function to get the sum of a specific category for a given user
 const getCategoryTotal = (data, category) => {
@@ -127,58 +95,53 @@ const getSplitDisplayNames = (split) => {
   return split.map(name => name.substring(0, 2).toUpperCase());
 };
 
-const TaxRow = ({ totalSubtotal, userSubtotal, item, proportionalTax, tax, numUsers }) => {  // Receive data, tax, and currency as props
+const TaxRow = ({ totalSubtotal, userSubtotal, item, proportionalTax, tax, numUsers, netPriceIsSelected }) => {  // Receive data, tax, and currency as props
 
 if (!item || !item.items || !Array.isArray(item.items)) {
     console.error("Invalid item data in TaxRow:", item);
     return <Text>Invalid item data for TaxRow</Text>;
   }
 
-  // console.log("item data in TaxRow: "+ item);
-
-  // const userSubtotal = item.reduce((sum, i) =>  // item.items is the correct array here
-  //   sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
-  //   0
-  // );
-
-// const totalSubtotal = item.items.reduce((sum, user) => { // added check
-//   if (!user || !user.items || !Array.isArray(user.items)) { // added check
-//       console.error("Invalid user data in TaxRow:", user);
-//       return sum; // added check
-//   }
-//   return sum + user.items.reduce((itemSum, i) =>
-//       itemSum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
-//       0),
-//   0);
-//   };
-
-const userTax = proportionalTax ?
-  (userSubtotal / totalSubtotal) * tax :
-  (tax / numUsers); 
-
+const userTax = proportionalTax 
+  ? (userSubtotal / totalSubtotal) * tax 
+  : (tax / numUsers); 
 
 return (
-    <View style={styles.row}>
-        <View style={[styles.adjustedWidthContainer, {minWidth: 300, maxWidth: 300}]}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <Text style={[styles.itemText, styles.boldText]} numberOfLines={1}>
-                    <Text style={styles.bulletPoint}>•</Text> {proportionalTax ? `Tax (${((userSubtotal / totalSubtotal) * 100).toFixed(2)}%)` : `Tax (${((1/numUsers) * 100).toFixed(0)}%)`}
-                </Text>
-            </ScrollView>
-        </View>
-        <View style={styles.rightContainerV2}>
-            <View style={[styles.yourTaxContainer, {marginLeft: Dimensions.get('window').width*-.25}]}>
-                <Text style={[styles.yourCostText, { color: colors.taxColor }]}>
-                   {userTax.toFixed(2)} {/* Display calculated tax with currency */}
-                </Text>
-            </View>
-        </View>
-    </View>
+    // <View style={styles.row}>
+    //     <View style={[styles.adjustedWidthContainer, {minWidth: Dimensions.get('window').width*.72, maxWidth: Dimensions.get('window').width*.72}]}>
+    //         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    //             <Text style={[styles.itemText, styles.boldText]} numberOfLines={1}>
+    //                 <Text style={styles.bulletPoint}>•</Text> {proportionalTax ? `Tax (${((userSubtotal / totalSubtotal) * 100).toFixed(2)}%)` : `Tax (${((1/numUsers) * 100).toFixed(0)}%)`}
+    //             </Text>
+    //         </ScrollView>
+    //     </View>
+    //     <View style={styles.rightContainerV2}>
+    //         <View style={[styles.yourTaxContainer, {marginLeft: Dimensions.get('window').width*-.25}]}>
+    //             <Text style={[styles.yourCostText, { color: colors.taxColor }]}>
+    //                {userTax.toFixed(2)} {/* Display calculated tax with currency */}
+    //             </Text>
+    //         </View>
+    //     </View>
+    // </View>
+    <View style={[styles.row, {paddingVertical: 4}]}>
+          <View style={[styles.taxRowContainer, { width: netPriceIsSelected ? '98.5%' : '96.2%' }]}>
+              <Text style={[styles.itemText, styles.boldText]} numberOfLines={1}>
+                  <Text style={styles.bulletPoint}>• </Text> 
+                  {proportionalTax 
+                      ? `Tax (${((userSubtotal / totalSubtotal) * 100).toFixed(2)}%)` 
+                      : `Tax (${((1 / numUsers) * 100).toFixed(0)}%)`}
+              </Text>
+              <View style={[styles.yourTaxContainer]}>
+                  <Text style={[styles.taxText]}>
+                      {userTax.toFixed(2)} {/* Display calculated tax */}
+                  </Text>
+              </View>
+          </View>
+      </View>
 );
 };
  
-const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected,  userName, toggleSelect, currency }) => {
-  const [expandedField, setExpandedField] = useState(null);
+const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected, userName, toggleSelect, currency }) => {
   const [splitHeight, setSplitHeight] = useState(0);
 
   const handleSplitLayout = (event) => {
@@ -186,29 +149,11 @@ const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected
     setSplitHeight(height);
   };
 
-    // Update toggleFieldExpansion to accept userName
-    const toggleFieldExpansion = (fieldName) => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-  
-      if (expandedField !== null && expandedField !== fieldName) {
-        setExpandedField(null);
-      }
-  
-      setExpandedField(fieldName === expandedField ? null : fieldName);
-  
-      // Call toggleSelect with userName
-      toggleSelect(itemName, userName);  // Pass userName here
-    };
-
   const yourCost = calculateYourCost(storePrice, sale, split);
   const netPrice = calculateNetPrice(storePrice, sale);
 
-  const toggleNetPrice = () => {
-    setNetPriceIsSelected(prev => !prev);
-  };
-
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, {paddingVertical: 1}]}>
       {isSelected && (
         <LinearGradient
           colors={[colors.fadedHighlightColor, colors.highlightColor, colors.fadedHighlightColor]}
@@ -218,107 +163,50 @@ const Row = ({ itemName, storePrice, split, sale, isSelected, netPriceIsSelected
         />
       )}
       <View style={netPriceIsSelected ? styles.leftContainerV2 : styles.adjustedWidthContainer}>
-  {netPriceIsSelected ? (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
-        <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
-          <Text style={styles.bulletPoint}>•</Text> {itemName}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
-  ) : (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
-        <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
-          <Text style={styles.bulletPoint}>•</Text> {itemName}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
-  )}
-</View>
-  <View style={styles.rightContainerV2}>
-      {netPriceIsSelected ? (
-        // Default layout: Net Price, Your Cost, and Split
-        <>
-         <TouchableOpacity onPress={() => toggleFieldExpansion('storePrice')} style={styles.touchableContainer}>
-            <View style={[
-              styles.storePriceContainer,
-              { height: expandedField === 'storePrice' ? splitHeight : 15 },
-              expandedField === 'storePrice' && styles.expandedDataContainer
-            ]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity onPress={() => toggleSelect(itemName, userName)} activeOpacity={1} style={styles.touchableItem}>
+            <Text style={[styles.itemText, isSelected && styles.boldText]} numberOfLines={1}>
+              <Text style={styles.bulletPoint}>•</Text> {itemName}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+      <View style={netPriceIsSelected ? styles.rightContainerV2 : styles.rightContainerV3}>
+        {netPriceIsSelected ? (
+          <>
+            <View style={styles.storePriceContainer}>
               <Text style={[styles.storePriceText, isSelected && styles.boldText]}>{currency}{storePrice}</Text>
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => toggleFieldExpansion('sale')} style={styles.touchableContainer}>
-            <View style={[
-              styles.saleContainer,
-              { height: expandedField === 'sale' ? splitHeight : 15 },
-              expandedField === 'sale' && styles.expandedDataContainer
-            ]}>
+            <View style={styles.saleContainer}>
               <Text style={[styles.saleText, isSelected && styles.boldText]}>
                 {parseFloat(sale) > 0 ? `-${parseFloat(sale).toFixed(2)}` : `0.00`}
               </Text>
             </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => toggleFieldExpansion('split')} style={styles.touchableContainer}>
-            <View style={[
-              styles.splitContainer,
-              { height: expandedField === 'split' ? splitHeight : undefined },
-              expandedField === 'split' && styles.expandedDataContainer
-            ]}>
+            <View style={styles.splitContainer}>
               <Text style={[styles.splitText, isSelected && styles.boldText]} onLayout={handleSplitLayout}>
                 {getSplitDisplayNames(split).join(', ')}
               </Text>
             </View>
-          </TouchableOpacity>
-
-         <TouchableOpacity onPress={toggleNetPrice} style={styles.touchableContainer}>
-            <View style={[
-              styles.yourCostContainer,
-              { height: expandedField === 'yourCost' ? splitHeight : undefined },
-              expandedField === 'yourCost' && styles.expandedDataContainer
-            ]}>
+            <View style={styles.yourCostContainer}>
               <Text style={[styles.yourCostText, isSelected && styles.boldText]}>{currency}{yourCost}</Text>
             </View>
-          </TouchableOpacity>
-        </>
-      ) : (
-        // Alternate layout: Your Cost, Split, Sale, and Retail
-        <>
-          <TouchableOpacity onPress={toggleNetPrice} style={styles.touchableContainer}>
-            <View style={[
-              styles.netPriceContainer,
-              { height: expandedField === 'netPrice' ? splitHeight : undefined },
-              expandedField === 'netPrice' && styles.expandedDataContainer
-            ]}>
+          </>
+        ) : (
+          <>
+            <View style={styles.netPriceContainer}>
               <Text style={[styles.netPriceText, isSelected && styles.boldText]}>{currency}{netPrice}</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFieldExpansion('split')} style={styles.touchableContainer}>
-            <View style={[
-              styles.splitContainerAdjusted,
-              { height: expandedField === 'split' ? splitHeight : undefined },
-              expandedField === 'split' && styles.expandedDataContainer
-            ]}>
+            <View style={styles.splitContainerAdjusted}>
               <Text style={[styles.splitText, isSelected && styles.boldText]} onLayout={handleSplitLayout}>
                 {getSplitDisplayNames(split).join(', ')}
               </Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => toggleFieldExpansion('yourCost')} style={styles.touchableContainer}>
-            <View style={[
-              styles.yourCostContainerAdjusted,
-              { height: expandedField === 'yourCost' ? splitHeight : undefined },
-              expandedField === 'yourCost' && styles.expandedDataContainer
-            ]}>
+            <View style={styles.yourCostContainerAdjusted}>
               <Text style={[styles.yourCostText, isSelected && styles.boldText]}>{currency}{yourCost}</Text>
             </View>
-          </TouchableOpacity>
-        </>
-      )}
-    </View>
+          </>
+        )}
+      </View>
     </View>
   );
 };
@@ -401,13 +289,13 @@ const BreakdownRow = ({ numUsers, item, userSubtotal, totalSubtotal, isExpanded,
                           <Text style={styles.breakdownTotalText}>Total: </Text>
                       </View>
                       <TouchableOpacity onPress={toggleBreakdown} style={styles.touchableTotal} activeOpacity={1}>
-                          <Text style={[styles.clickableText, styles.breakdownCostText, {marginLeft: Dimensions.get('window').width*.393, color: colors.finalTotalColorGreen }]}>
+                          <Text style={[styles.clickableText, styles.breakdownCostText, {marginLeft: Dimensions.get('window').width*.378, color: colors.finalTotalColorGreen }]}>
                               {currency}{totalYourCost.toFixed(2)}
                           </Text>
                       </TouchableOpacity>
                       {showBreakdown && (
                           <View style={styles.breakdownDetailsContainer}>
-                              <View style={[styles.breakdownCostContainerAdjusted, {marginLeft: Dimensions.get('window').width*-0.53, width: Dimensions.get('window').width * 0.15 }]}>
+                              <View style={[styles.breakdownCostContainerAdjusted, {marginLeft: Dimensions.get('window').width*-0.56, width: Dimensions.get('window').width * 0.16 }]}>
                                   <Text style={styles.breakdownCostText}>
                                       {currency}{userSubtotal.toFixed(2)}
                                   </Text>
@@ -484,10 +372,23 @@ const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax, 
               >
                 <Text style={styles.proportionalTaxButtonText}>{proportionalTax ? 'Relative Tax' : 'Fixed Tax'}</Text>
               </TouchableOpacity>
-            <View style={styles.allHeaderCell}><Text style={styles.headerTextBottomBar}>All</Text></View>
+              {proportionalTax ? (
+                <>
+                  <View style={styles.allHeaderCell}>
+                  <Text style={styles.headerTextBottomBar}>All</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={[styles.allHeaderCell, {width: '18%', marginRight: '1%'}]}>
+                  <Text style={styles.headerTextBottomBar}>All</Text>
+                  </View>
+                </>
+              )}
+              
             {totalsByUser.map(user => (
-              <View key={user.userName} style={styles.userHeaderCell}>
-                <Text style={styles.headerText}>{user.userName}</Text>
+              <View key={user.userName} style={styles.userHeaderCell}> 
+                <Text numberOfLines={1} style={styles.headerText}>{user.userName}</Text>
               </View>
             ))}
           </View>
@@ -555,11 +456,10 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
       setNetPriceIsSelected(prev => !prev);
     };
 
-    // const numUsers = data.length;
-    const totalTax = tax;
-
+  // const numUsers = data.length;
+  // const totalTax = tax;
   // const totalSubtotal = item.items.reduce((sum, i) => // changed to i from item
-  //     sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)), 0).toFixed(2);
+  // sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)), 0).toFixed(2);
 
   const userSubtotal = item.items.reduce((sum, i) =>
       sum + parseFloat(calculateYourCost(i.storePrice, i.sale, i.split)),
@@ -570,18 +470,16 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
   // const userTax = (userSubtotal / parseFloat(totalSubtotal)) * totalTax; // is this used?
     // const formattedUserTax = userTax.toFixed(2); // Format to two decimal places
 
-
+//add in line 578 if net Price is not selected, then width = 180 but if it is userNameContainer width = 160 with overflow = elipsis
   return (
 
-      <View style={styles.innerContainer}>
-        <View style={styles.headerContainer}>
-          <View style={styles.userNameContainer}>
-            <Text style={styles.userNameText}>{item.userName}</Text>
+    <View style={styles.innerContainer}>
+    <View style={styles.headerContainer}>
+    {netPriceIsSelected ? (
+          <>
+          <View style={[styles.userNameContainer, {marginLeft: '-2.5%', width: '42.25%', marginRight: '8%'}]}>
+            <Text numberOfLines={1} style={styles.userNameText}>  {item.userName.slice(0, 10)}</Text>
           </View>
-  
-          {netPriceIsSelected ? (
-            // Default layout: Show Net Price, Split, and Owed
-            <>
               <TouchableOpacity onPress={resetToDefault} style={styles.storePriceHeaderContainer}>
                 <Text style={[styles.headerText, styles.clickableText]}>Retail</Text>
               </TouchableOpacity>
@@ -598,6 +496,9 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
           ) : (
             // Alternate layout: Show Sale and Retail, which can reset back to default on click
             <>
+          <View style={[styles.userNameContainer, {minWidth: '52%', maxWidth: '52%'}]}>
+            <Text numberOfLines={1} style={styles.userNameText}>{item.userName}</Text>
+          </View>
              <TouchableOpacity onPress={toggleNetPrice} style={styles.netPriceHeaderContainer}>
                 <Text style={[styles.clickableText, styles.headerText, netPriceIsSelected && styles.selectedText]}>Net Price</Text>
               </TouchableOpacity>
@@ -624,6 +525,7 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
             toggleSelect={toggleSelectItem} // Pass toggleSelectItem function
             netPriceIsSelected={netPriceIsSelected}
             userName = {item.userName}
+            currency={currency}
           />
         ))}
 
@@ -633,6 +535,7 @@ const Container = ({ item, selectedItem, toggleSelectItem, proportionalTax, tax,
         numUsers={numUsers} 
         userSubtotal={userSubtotal}
         totalSubtotal={totalSubtotal}
+        netPriceIsSelected={netPriceIsSelected}
         proportionalTax={proportionalTax} // Pass the percentage as a string
       />
         {/* Horizontal line above BreakdownRow */}
@@ -738,11 +641,33 @@ useEffect(() => {
     return (userSubtotal + userTax).toFixed(2);
 };
 
-const createVenmoLink = (amount, note, recipient) => { // Add recipient argument
-  // return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}¬e=${encodeURIComponent(note)}`;
-  return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}&note=${encodeURIComponent(note)}`;
-};
+// const createVenmoLink = (amount, note, recipient) => { // Add recipient argument
+//   // return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}¬e=${encodeURIComponent(note)}`;
+//   return `venmo://paycharge?txn=pay&recipients=${recipient}&amount=${amount}&note=${encodeURIComponent(note)}`;
+// };
 
+const createVenmoLink = (amount, note, recipient) => {
+
+  let formattedUsername = recipient;
+  
+  // Check if it's a phone number (contains numbers)
+  if (/\d/.test(venmoUsername)) {
+      // Remove +1 prefix if it exists
+      formattedUsername = formattedUsername.replace(/^\+1-?/, '');
+      
+      // Remove leading 1 if it exists
+      formattedUsername = formattedUsername.replace(/^1-?/, '');
+      
+      // Get only the last 10 digits plus any dashes between them
+      const digits = formattedUsername.replace(/\D/g, '').slice(-10);
+      if (digits.length === 10) {
+          // Keep original dashes if they exist in the correct positions
+          formattedUsername = formattedUsername.slice(-12); // account for possible dashes
+      }
+  }
+  console.log(formattedUsername);
+  return `venmo://paycharge?txn=pay&recipients=${formattedUsername}&amount=${amount}&note=${encodeURIComponent(note)}`;
+};
 
   const sendIndividualMessage = async (recipient) => { // Recipient passed as argument
     if (!selectedPayer) {
@@ -814,7 +739,7 @@ const createVenmoLink = (amount, note, recipient) => { // Add recipient argument
 
       {/* Center Title */}
       <View style={styles.navTitleContainer}>
-        <Text style={[styles.navTitleText, { textAlign: 'center' }]}>{title}</Text>
+        <Text style={[styles.navTitleText]}>{title}</Text>
       </View>
 
       {/* Right Navigation Container */}
@@ -1013,7 +938,7 @@ const { subtotal, tax: initialTax, total } = initialData.receiptEndVariables; //
 const [tax, setTax] = useState(initialTax); // Use initialTax here
 const [data1, setData1] = useState(initialData);
 
-console.log("initialData:" + initialData);
+// console.log("initialData:" + initialData);
 
   const toggleBottomBar = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -1120,7 +1045,7 @@ const styles = StyleSheet.create({
   pageBackground: {
     flex: 1,
     backgroundColor: colors.backgroundColorBehindCard, // Background color
-    paddingVertical: 5,
+    paddingVertical: 0,
     paddingHorizontal: 2,
   },
   boldText: {
@@ -1143,7 +1068,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     padding: 10,
     borderRadius: 20,
-    width: Dimensions.get('window').width-25,
+    width: '99.8%',
     paddingBottom: 3,
     //overflow: 'hidden',
     // Shadow for iOS
@@ -1180,21 +1105,29 @@ const styles = StyleSheet.create({
   leftContainerV2: {
     flex: 1,
     paddingRight: 0,
-    maxWidth: 136,
-    minWidth: 136,
+    maxWidth: '40.0%',
+    minWidth: '30%',
     marginLeft: 4,
     paddingHorizontal: 2,
-    paddingVertical: 2,
   },
-  adjustedWidthContainer: {
+  taxRowContainer: {
+    flexDirection: 'row',
     flex: 1,
-    paddingRight: 0,
-    minWidth: 195,
-    maxWidth: 195,
-    marginLeft: 4,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
-  },
+    // flex: 1,
+    // width: '96%',
+    marginLeft: '0%',
+    justifyContent: 'space-between', // Distribute space between children
+    paddingHorizontal: 0,
+},
+adjustedWidthContainer: {
+  flex: 1,
+  paddingRight: 0,
+  minWidth: '40%', //195
+  maxWidth: '47.5%',
+  marginLeft: '1%',
+  marginRight: '5%',
+  paddingHorizontal: 2,
+},
   rightContainer: {
     flexDirection: 'row', // Align the data in row format
     justifyContent: 'space-between',
@@ -1205,39 +1138,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row', // Align the data in row format
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginLeft: 4,
+    marginLeft: '0%',
+  },
+  rightContainerV3: {
+    flexDirection: 'row', // Align the data in row format
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: '3%',
   },
   expandedDataContainer: {
     maxWidth: '100%', // Expand to fit content when expanded
-    height: undefined,// Remove fixed height when expanded
+    // height: 15,// Remove fixed height when expanded
     paddingHorizontal: 2, // Consistent padding
   },
   // Individual containers for each field in the right container
   netPriceContainer: {
-    marginLeft: Dimensions.get('window').width*0.012,
+    // marginLeft: Dimensions.get('window').width*-0.0005,
     // width: 50,
-    width: Dimensions.get('window').width*.11,
+    width: Dimensions.get('window').width*.15,
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
   yourCostContainer: {
     marginLeft: 0,
+    marginRight: '2%',
     // width: 50,
-    width: Dimensions.get('window').width*.11,
+    width: Dimensions.get('window').width*.13,
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
   yourTaxContainer: {
-    marginLeft: 0,
+    // marginLeft: 0,
     // width: 50,
-    width: Dimensions.get('window').width*.383,
-    justifyContent: 'center',
     alignItems: 'flex-end',
+    paddingRight: '3%',
+    flex: 1,
+    justifyContent: 'center',
   },
   yourCostContainerAdjusted: {
-    marginLeft: Dimensions.get('window').width*-0.005,
+    marginLeft: 0,
     // width: 50,
-    width: Dimensions.get('window').width*.11,
+    width: Dimensions.get('window').width*.13,
     justifyContent: 'center',
     alignItems: 'flex-end',
   },
@@ -1280,14 +1221,15 @@ const styles = StyleSheet.create({
   yourCostHeaderContainerAdjusted: {
     // width: 70,
     width: Dimensions.get('window').width*.20,
-    marginLeft: Dimensions.get('window').width*-0.033,
+    marginLeft: '-1.5%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   netPriceHeaderContainer: {
     width: Dimensions.get('window').width*.16,
+    marginLeft: '-2.1%',
     // marginLeft: 4,
-    marginLeft: Dimensions.get('window').width*.045,
+    // marginLeft: Dimensions.get('window').width*.045,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1355,6 +1297,12 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     color: colors.yourCostColor,
   },
+  taxText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    textAlign: 'right',
+    color: colors.taxColor,
+  },
   splitText: {
     fontSize: 14,
     fontFamily: 'monospace',
@@ -1380,7 +1328,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   userNameContainer: {
-    width: 180,
+    // width: 180,
     justifyContent: 'center',
     paddingLeft: 10,
   },
@@ -1388,6 +1336,8 @@ const styles = StyleSheet.create({
     fontSize: 23,
     fontWeight: 'bold',
     textAlign: 'left',
+    overflow: 'hidden',   // Ensures overflow is hidden
+    textOverflow: 'elipsis', // Adds ellipsis when text overflows
   },
   buttonContainerInBreakdown: {
     flexDirection: 'row',  // Align "Show More" and "Totals:" side by side
@@ -1520,8 +1470,8 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   allHeaderCell: {  // "All" header cell
-    minWidth: 64,
-    maxWidth: 64,
+    width: '12%',
+    marginRight: '3%',
     justifyContent: 'center',
   },
   userHeaderCell: { // User header cells
@@ -1574,7 +1524,7 @@ const styles = StyleSheet.create({
   },
   navigationBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
     paddingHorizontal: 15,
     paddingTop:  Platform.OS === 'ios' ? 27: 27, // Handle padding for different OS
@@ -1587,11 +1537,16 @@ const styles = StyleSheet.create({
   navButton: {
     padding: 10,
   },
-  navTitleContainer: {                // Styles for title container
+  navTitleContainer: {
+    // flex: 1,
+    // alignSelf: 'center',
+    // justifyContent: 'center',
+    // alignItems: 'center',
+    // flexDirection: 'row',
     flex: 1,
+    alignItems:'center',
     justifyContent: 'center',
-    flexDirection: 'row',                       // Allows title to take available space
-    alignItems: 'center',           // Centers title horizontally
+
   },
   navTitleText: {
     fontSize: 20,
@@ -1608,22 +1563,25 @@ const styles = StyleSheet.create({
     marginRight: 0
   },
   leftNavContainer:{
-    alignItems: 'center',
-    flexDirection: 'row',
-    width: 100,
+    alignItems: 'flex-start',
+    width: 40
+    // flexDirection: 'row',
+    // maxWidth: '20%',
   },
   rightNavContainer:{
-    flexDirection: 'row',  // Align image and button horizontally
-    alignItems: 'center',   // Center vertically
-    width: 100,
+    // flexDirection: 'row',  // Align image and button horizontally
+    // alignItems: 'center',   // Center vertically
+    // maxWidth: '20%',
+    width: 40,
+    alignItems: 'center'
   },
   proportionalTaxButton: {
     backgroundColor: 'grey',
     borderRadius: 5,
     padding: 5,
-    minWidth: 5,
-    maxWidth: 87,
-    marginRight: 10,  // Add some margin
+    minWidth: '10%',
+    maxWidth: '40%',
+    marginRight: '2%',  // Add some margin
   },
   proportionalTaxButtonActive: {
     backgroundColor: 'green',
