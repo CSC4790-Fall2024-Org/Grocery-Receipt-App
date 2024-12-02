@@ -260,10 +260,12 @@ const BreakdownRow = ({ numUsers, item, userSubtotal, totalSubtotal, isExpanded,
                       <AntDesign name={isExpanded ? 'up' : 'down'} size={15} color="white" />
                   </TouchableOpacity>
               </View>
+              
               {netPriceIsSelected ? (
                   <>
                       <View style={styles.breakdownTotalContainer}>
-                          <Text style={styles.breakdownTotalText}>Totals:</Text>
+                          <Text style={styles.breakdownTotalText}>Total:</Text>
+                         
                       </View>
                       <View style={styles.rightContainer}>
                           <View style={styles.breakdownStoreContainer}>
@@ -284,41 +286,35 @@ const BreakdownRow = ({ numUsers, item, userSubtotal, totalSubtotal, isExpanded,
                       </View>
                   </>
               ) : (
-                  <>
-                      <View style={styles.breakdownTotalContainer}>
-                          <Text style={styles.breakdownTotalText}>Total: </Text>
-                      </View>
-                      <TouchableOpacity onPress={toggleBreakdown} style={styles.touchableTotal} activeOpacity={1}>
-                          <Text style={[styles.clickableText, styles.breakdownCostText, {marginLeft: Dimensions.get('window').width*.378, color: colors.finalTotalColorGreen }]}>
-                              {currency}{totalYourCost.toFixed(2)}
-                          </Text>
-                      </TouchableOpacity>
-                      {showBreakdown && (
-                          <View style={styles.breakdownDetailsContainer}>
-                              <View style={[styles.breakdownCostContainerAdjusted, {marginLeft: Dimensions.get('window').width*-0.56, width: Dimensions.get('window').width * 0.16 }]}>
-                                  <Text style={styles.breakdownCostText}>
-                                      {currency}{userSubtotal.toFixed(2)}
-                                  </Text>
-                              </View>
-                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.048, width: Dimensions.get('window').width * 0.15 }]}>
-                                  <Text style={[styles.breakdownCostText, { color: colors.arithmeticColor }]}>+</Text>
-                              </View>
-
-                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.064, width: Dimensions.get('window').width * 0.15 }]}>
-                                  <Text style={[styles.breakdownCostText, { color: colors.taxColor }]}>{currency}{userTax.toFixed(2)}</Text>
-                              </View>
-
-                              <View style={[styles.breakdownCostContainerAdjusted, { marginLeft: Dimensions.get('window').width * -0.062, width: Dimensions.get('window').width * 0.15 }]}>
-                                  <Text style={[styles.breakdownCostText, { color: colors.arithmeticColor }]}>=</Text>
-                              </View>
-                          </View>
-                      )}
-                  </>
-              )}
-          </View>
-      </View>
-  );
-};
+                <>
+                <Text style={styles.breakdownTotalText}>Total: </Text>
+                <View style = {{alignItems: 'center', flexDirection: 'row', flex: 1, justifyContent: 'flex-end'}}> 
+                
+                  {showBreakdown && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.breakdownCostText}>
+                        {userSubtotal.toFixed(2)}
+                    </Text>
+                    <Text style={[styles.breakdownCostText, {paddingRight: 5, color: '#000000'}]}> + </Text>
+                    <Text style={[styles.breakdownCostText, { color: colors.taxColor }]}>
+                        {userTax.toFixed(2)}
+                    </Text>
+                    <Text style={[styles.breakdownCostText, {paddingRight: 5, color: '#000000'}]}> = </Text>
+                </View>
+                    
+                  )}
+                </View>
+                <TouchableOpacity onPress={toggleBreakdown} activeOpacity={1}>
+                  <Text style={[styles.clickableText, styles.breakdownCostText2, { color: colors.finalTotalColorGreen }]}>
+                    {currency}{totalYourCost.toFixed(2)}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View> 
+        </View>
+    );
+  };
 
  
 const BottomBar = ({ data, isBottomBarExpanded, toggleBottomBar, currency, tax, proportionalTax, setProportionalTax}) => {
@@ -991,6 +987,7 @@ const [data1, setData1] = useState(initialData);
 
   return (
     <View style={styles.pageBackground}>
+     
     <NavigationBar 
       title="Payment Summary" 
       modalVisible={modalVisible} 
@@ -1356,8 +1353,21 @@ adjustedWidthContainer: {
     fontWeight: 'bold',
   },
   breakdownTotalContainer: {
+    flexDirection: 'row',
     marginLeft: 0,
     marginVertical: 3,
+  },
+  breakdownTotalContainer2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
+  },
+  totalContentContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
    breakdownTotalText: {
     fontSize: 19,
@@ -1393,7 +1403,15 @@ adjustedWidthContainer: {
     alignItems: 'center', // Align with 'Store Price' column
   },
   breakdownCostText: {
-    fontSize: 17,
+    fontSize: 16,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    textAlign: 'right',
+    color: colors.yourCostColor,
+  },
+  breakdownCostText2: {
+    paddingLeft: 5,
+    fontSize: 16,
     fontFamily: 'monospace',
     fontWeight: 'bold',
     textAlign: 'right',
@@ -1579,8 +1597,8 @@ adjustedWidthContainer: {
     backgroundColor: 'grey',
     borderRadius: 5,
     padding: 5,
-    minWidth: '10%',
-    maxWidth: '40%',
+    minWidth: '20%',
+    maxWidth: '45%',
     marginRight: '2%',  // Add some margin
   },
   proportionalTaxButtonActive: {
@@ -1769,7 +1787,7 @@ checkMarkContainer: {
 },
 breakdownDetailsContainer: {
   flexDirection: 'row', // Align breakdown details in a row
-  marginLeft: Dimensions.get('window').width*0.005,
+  // marginLeft: Dimensions.get('window').width*0.005,
 },
 });
 
