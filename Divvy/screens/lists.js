@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList,  TouchableOpacity, StyleSheet, Button, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, FlatList,  TouchableOpacity, StyleSheet, Dimensions, Button, TextInput, Modal, Alert } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import BouncyCheckbox from 'react-native-bouncy-checkbox';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 1,
     textAlign: 'center',
-    width: '50%', 
+    width: Dimensions.get('window').width*.6, 
 },
   container: {
     flex: 1,
